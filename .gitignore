@@ -10,7 +10,9 @@
 .project
 .classpath
 .settings/
-.vscode/
+
+# Customization Files
+.vscode/settings.json
 
 # Build directories
 bin/
