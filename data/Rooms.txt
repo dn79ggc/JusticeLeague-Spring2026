@@ -1,0 +1,6 @@
+1,0,2,0,0,Start
+2,3,4,5,1,Crosspaths
+3,0,0,2,0,Cliff
+4,0,6,0,2,Tunnel
+5,2,0,0,0,Lagoon
+6,0,0,0,4,Valley
