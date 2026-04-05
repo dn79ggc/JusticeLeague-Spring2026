@@ -1,3 +1,4 @@
+// GameController.java
 package controller;
 
 import model.Game;
@@ -8,19 +9,17 @@ import java.util.Scanner;
 
 public class GameController {
 
-    // The default map file. Change this string to load a different map.
     private static final String MAP_FILE = "Rooms.txt";
 
-    public static void main(String[] args) {
+    // Called by Main. Owns the game loop.
+    public void run() {
         Scanner scanner = new Scanner(System.in);
 
-        // Instantiate one of each MVC layer
         Game game = new Game();
         GameView view = new GameView();
         Player player = new Player(1);
         boolean gameEnd = false;
 
-        // Controller asks Model to load data, then tells View what to show
         boolean loaded = game.mapGenerate(MAP_FILE);
         if (!loaded) {
             view.showMapLoadError(MAP_FILE);
@@ -29,7 +28,6 @@ public class GameController {
         view.showMapLoadSuccess();
         view.showWelcome(game.getTotalRooms());
 
-        // Mark Room 1 as visited at the start
         game.getRoomByNumber(1).setVisited();
 
         while (!gameEnd) {
@@ -50,8 +48,6 @@ public class GameController {
             }
 
             int directionIndex = indexFromDirection(input);
-
-            // Model handles the movement decision
             int nextRoomNumber = player.attemptMove(currentRoom, directionIndex);
 
             if (nextRoomNumber == -1) {
@@ -74,8 +70,6 @@ public class GameController {
         scanner.close();
     }
 
-    // Input validation and direction mapping stay in Controller —
-    // they are about interpreting user input, not game logic or display.
     public static boolean validateInput(char input) {
         return "neswq".indexOf(input) >= 0;
     }
