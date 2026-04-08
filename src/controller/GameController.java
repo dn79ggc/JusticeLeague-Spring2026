@@ -5,7 +5,10 @@ import model.Game;
 import model.Player;
 import model.Room;
 import view.GameView;
-import java.util.Scanner;
+
+import java.io.File;
+import java.io.*;
+import java.util.*;
 
 public class GameController {
 
@@ -69,6 +72,7 @@ public class GameController {
         }
         scanner.close();
     }
+
 
     public static boolean validateInput(char input) {
         return "neswq".indexOf(input) >= 0;

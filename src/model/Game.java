@@ -3,6 +3,8 @@ package model;
 import java.util.ArrayList;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class Game {
@@ -10,12 +12,14 @@ public class Game {
     // Any future data files (items, monsters, puzzles) should go there too.
     private static final String DATA_DIR = "data/";
 
+    private Map<String, Room> rooms = new HashMap<>();
+
     private ArrayList<Room> map = new ArrayList<Room>();
 
     // Loads rooms from the given filename inside the data/ folder.
     // Returns true on success, false if the file is not found.
     // No printing here — the Controller reads this result and tells the View.
-    public boolean mapGenerate(String filename) {
+   /* public boolean mapGenerate(String filename) {
         try {
             File file = new File(DATA_DIR + filename);
             Scanner fileScanner = new Scanner(file);
@@ -39,6 +43,37 @@ public class Game {
 
         } catch (FileNotFoundException e) {
             return false;
+        }
+    } */
+
+    private void loadRooms(){
+        try{
+            File file = new File(DATA_DIR + "Room.txt");
+            Scanner fileScanner = new Scanner(file);
+
+            while (fileScanner.hasNextLine()) {
+                String line = fileScanner.nextLine();
+                if(line.startsWith("RoomID")) continue;
+
+                String[] data = line.split("\\|");
+
+                String roomId = data[0];
+                String name = data[1];
+                String description = data[2];
+
+                Room newRoom = new Room(roomId, name, description);
+
+                newRoom.addExit("N", data[3]);
+                newRoom.addExit("S", data[4]);
+                newRoom.addExit("E", data[5]);
+                newRoom.addExit("W", data[6]);
+
+                rooms.put(roomId, newRoom);
+            }
+            fileScanner.close();
+        }catch(FileNotFoundException e){
+            System.out.println("No file found");
+            System.exit(1);
         }
     }
 

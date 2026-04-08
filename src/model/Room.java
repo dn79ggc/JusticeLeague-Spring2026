@@ -1,64 +1,82 @@
 package model;
+import java.util.*;
 
 public class Room {
-    private int[] directions = new int[4]; // North, East, South, West
-    private int roomNumber;
-    private String roomName;
+    private String roomId;
+    private String name;
     private String roomDescription;
     private boolean visited = false;
+    private Map <String, String> exits;
+    private ArrayList<Item> itemsInRoom;
+    private Monster monster;
+    private Puzzle puzzle;
 
-    public Room(int roomNumber, int north, int east, int south, int west, String roomDescription) {
-        this.roomNumber = roomNumber;
-        this.directions[0] = north;
-        this.directions[1] = east;
-        this.directions[2] = south;
-        this.directions[3] = west;
-        this.roomName = "Room " + roomNumber;
+    public Room(String roomId, String name, String roomDescription) {
+        this.roomId = roomId;
+        this.name = name;
         this.roomDescription = roomDescription;
+        this.itemsInRoom = new ArrayList<>();
+        this.exits = new HashMap<>();
+        this.monster = null;
+        this.puzzle = null;
+
     }
 
-    public int getRoomNumber() {
-        return roomNumber;
+    public String getRoomId() {
+        return roomId;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public String getRoomDescription() {
         return roomDescription;
     }
 
-    public String getRoomName() {
-        return roomName;
+    public boolean hasVisited() {
+        return visited;
     }
 
-    // Returns the destination room number for a given direction index,
-    // or 0 if there is no exit in that direction.
-    public int getExit(int directionIndex) {
-        if (directionIndex >= 0 && directionIndex < directions.length) {
-            return directions[directionIndex];
-        }
-        return 0;
-    }
-
-    // Returns a readable list of available exits — used by GameView.
-    public String getAvailableExits() {
-        String[] names = {"North", "East", "South", "West"};
-        StringBuilder exits = new StringBuilder("Available exits: ");
-        boolean anyExit = false;
-        for (int i = 0; i < directions.length; i++) {
-            if (directions[i] > 0) {
-                exits.append(names[i]).append(" ");
-                anyExit = true;
-            }
-        }
-        return anyExit ? exits.toString().trim() : "No exits available.";
-    }
-
-    // Mark the room as visited
     public void setVisited() {
         this.visited = true;
     }
 
-    // Check visited status
-    public boolean isVisited() {
-        return visited;
+    public Monster getMonster() {
+        return monster;
     }
+
+    public void setMonster(Monster monster) {
+        this.monster = monster;
+    }
+
+    public Puzzle getPuzzle() {
+        return puzzle;
+    }
+
+    public void setPuzzle(Puzzle puzzle) {
+        this.puzzle = puzzle;
+    }
+
+    public void addItem(Item item){
+        itemsInRoom.add(item);
+    }
+
+    public void removeItem(String item){
+        this.itemsInRoom.remove(item);
+    }
+
+    public void addExit(String direction, String roomId){
+        if(roomId != null && !roomId.equals("null")){
+            exits.put(direction, roomId);
+        }
+    }
+
+    public void getExit(String direction){
+        exits.getOrDefault(direction, null);
+    }
+
+
+
+
 }
