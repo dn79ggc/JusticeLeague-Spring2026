@@ -122,6 +122,34 @@ public class Player {
         this.equippedArmor = armor;
     }
 
+    public boolean unequipWeapon() {
+        if (equippedWeapon == null) {
+            return false;
+        }
+
+        if (inventory.size() >= 7) {
+            return false;
+        }
+
+        inventory.add(equippedWeapon);
+        equippedWeapon = null;
+        return true;
+    }
+
+    public boolean unequipArmor() {
+        if (equippedArmor == null) {
+            return false;
+        }
+
+        if (inventory.size() >= 7) {
+            return false;
+        }
+
+        inventory.add(equippedArmor);
+        equippedArmor = null;
+        return true;
+    }
+
     // Combat Helpers
     public int attack() {
         return getAttackValue();
@@ -202,7 +230,21 @@ public class Player {
     }
 
     public String getHint() {
-        return "No hints available.";
+        if (currentRoom == null) {
+            return "No hint available";
+        }
+
+        if (!currentRoom.hasPuzzle()) {
+            return "No hint available";
+        }
+
+        Puzzle puzzle = currentRoom.getPuzzle();
+
+        if (puzzle.hasHint()) {
+            return puzzle.getHint();
+        } else {
+            return "No hint available";
+        }
     }
 
     public boolean useKeyItem(KeyItem keyItem) {
