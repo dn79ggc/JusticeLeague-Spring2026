@@ -1,17 +1,28 @@
 package model;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class Player {
+
+    // Navigation & Tracking
     private int location;
     private int roomsVisited;
     private int totalMoves;
+
+    private Room currentRoom;
+    private Room previousRoom;
+
+    private List<String> visitedRooms; // Visited room IDs (for Map & SaveFile)
 
     // Combat Stats
     private int currentHP;
     private int maxHP;
     private int baseAttack;
     private int baseDefense;
+
+    private boolean isDefending;
+    private boolean itemUsedThisTurn;
 
     // Inventory & Equipment
     private List<Item> inventory;
@@ -31,13 +42,18 @@ public class Player {
         this.maxHP = 100;
         this.currentHP = maxHP;
         this.baseAttack = 10;
-        this.baseDefense = 10;
+        this.baseDefense = 5;
 
-        // Inventory & status effects
+        // Inventory & states
         this.inventory = new ArrayList<>();
         this.statusEffects = new ArrayList<>();
+        this.visitedRooms = new ArrayList<>();
+
         this.equippedWeapon = null;
         this.equippedArmor = null;
+
+        this.isDefending = false;
+        this.itemUsedThisTurn = false;
     }
 
     // Movement Logic
@@ -78,12 +94,23 @@ public class Player {
         return inventory;
     }
 
-    public void addItem(Item item) {
+    public boolean addToInventory(Item item) {
+        if (inventory.size() >= 7) {
+            return false;
+        }
         inventory.add(item);
+        return true;
     }
 
-    public void removeItem(Item item) {
-        inventory.remove(item);
+    public boolean removeItem(Item item) {
+        if (item instanceof KeyItem) {
+            return false;
+        }
+        return inventory.remove(item);
+    }
+
+    public int getInventorySlots() {
+        return inventory.size();
     }
 
     // Equipment
@@ -96,6 +123,23 @@ public class Player {
     }
 
     // Combat Helpers
+    public int attack() {
+        return getAttackValue();
+    }
+
+    public void defend() {
+        isDefending = true;
+    }
+
+    public boolean flee() {
+        return false;
+    }
+
+    public void resetTurnFlags() {
+        isDefending = false;
+        itemUsedThisTurn = false;
+    }
+
     public void takeDamage(int amount) {
         currentHP -= amount;
         if (currentHP < 0) {
@@ -116,7 +160,7 @@ public class Player {
 
     public int getAttackValue() {
         int attack = baseAttack;
-        if (equippedWWeapon != null) {
+        if (equippedWeapon != null) {
             attack += equippedWeapon.getDamage();
         }
         return attack;
@@ -135,8 +179,106 @@ public class Player {
         statusEffects.add(effect);
     }
 
+    public boolean hasStatusEffect(EffectType type) {
+        for (StatusEffect effect : statusEffects) {
+            if (effect.getEffectType() == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void applyStatusEffects() {
+
+    }
+
     public void clearStatusEffects() {
         statusEffects.clear();
     }
 
+    // Puzzle Interaction
+    public boolean solvePuzzle(String answer) {
+        return false;
+    }
+
+    public String getHint() {
+        return "No hints available.";
+    }
+
+    public boolean useKeyItem(KeyItem keyItem) {
+        return false;
+    }
+
+    // Info for Save / UI
+    public String getName() {
+        return "Player";
+    }
+
+    public String getStatus() {
+        return "HP: " + currentHP + "/" + maxHP +
+                " | ATK: " + getAttackValue() +
+                " | DEF: " + getDefenseValue();
+    }
+
+    // Command methods
+    public String inspectItem(Item item) {
+        if (!inventory.contains(item)) {
+            return "You must pick up this item before inspecting it.";
+
+        }
+        return item.getInfo();
+    }
+
+    public String exploreRoom() {
+        if (currentRoom == null) {
+            return "There is nothing to explore here";
+        }
+        return currentRoom.getFullDescription();
+    }
+
+    public boolean pickupItem(Item item) {
+        if (currentRoom == null || item == null) {
+            return false;
+        }
+
+        if (!currentRoom.getItems().contains(item)) {
+            return false;
+        }
+
+        if (!addToInventory(item) && (!item instanceof KeyItem)) {
+            return false; // inventory full
+        }
+
+        currentRoom.removeItem(item);
+        return true;
+    }
+
+    public boolean dropItem(Item item) {
+        if (item == null || !inventory.contains(item)) {
+            return false;
+        }
+
+        if (item instanceof KeyItem) {
+            return false;
+        }
+
+        inventory.remove(item);
+        currentRoom.addItem(item);
+        return true;
+    }
+
+    public List<String> showInventory() {
+        List<String> result = new ArrayList<>();
+
+        if (inventory.isEmpty()) {
+            result.add("Your inventory is empty.");
+            return result;
+        }
+
+        for (Item item : inventory) {
+            result.add(item.getName());
+        }
+
+        return result;
+    }
 }
