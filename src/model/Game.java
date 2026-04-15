@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -18,70 +19,73 @@ public class Game {
 
     // Loads rooms from the given filename inside the data/ folder.
     // Returns true on success, false if the file is not found.
-    // No printing here — the Controller reads this result and tells the View.
-   /* public boolean mapGenerate(String filename) {
+    // This implementation also converts string room IDs into sequential room
+    // numbers
+    // so the current controller and player code can operate using numeric room
+    // indexes.
+    public boolean mapGenerate(String filename) {
         try {
             File file = new File(DATA_DIR + filename);
             Scanner fileScanner = new Scanner(file);
 
+            if (!fileScanner.hasNextLine()) {
+                fileScanner.close();
+                return false;
+            }
+
+            fileScanner.nextLine(); // Skip header
+
+            List<String[]> rows = new ArrayList<>();
             while (fileScanner.hasNextLine()) {
-                String line = fileScanner.nextLine();
-                String[] parts = line.split(",");
-
-                int roomNumber  = Integer.parseInt(parts[0]);
-                int north       = Integer.parseInt(parts[1]);
-                int east        = Integer.parseInt(parts[2]);
-                int south       = Integer.parseInt(parts[3]);
-                int west        = Integer.parseInt(parts[4]);
-                String description = parts[5];
-
-                Room tempRoom = new Room(roomNumber, north, east, south, west, description);
-                map.add(tempRoom);
+                String line = fileScanner.nextLine().trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+                String[] parts = line.split("\\|", -1);
+                if (parts.length < 7) {
+                    continue;
+                }
+                rows.add(parts);
             }
             fileScanner.close();
+
+            Map<String, Integer> idToIndex = new HashMap<>();
+            for (int i = 0; i < rows.size(); i++) {
+                String roomId = rows.get(i)[0];
+                Room tempRoom = new Room(roomId, rows.get(i)[1], rows.get(i)[2]);
+                map.add(tempRoom);
+                idToIndex.put(roomId, i + 1);
+            }
+
+            for (int i = 0; i < rows.size(); i++) {
+                Room room = map.get(i);
+                String[] parts = rows.get(i);
+                room.addExit("N", parseExit(parts[3], idToIndex));
+                room.addExit("S", parseExit(parts[4], idToIndex));
+                room.addExit("E", parseExit(parts[5], idToIndex));
+                room.addExit("W", parseExit(parts[6], idToIndex));
+            }
+
             return true;
 
         } catch (FileNotFoundException e) {
             return false;
         }
-    } */
+    }
 
-    private void loadRooms(){
-        try{
-            File file = new File(DATA_DIR + "Room.txt");
-            Scanner fileScanner = new Scanner(file);
-
-            while (fileScanner.hasNextLine()) {
-                String line = fileScanner.nextLine();
-                if(line.startsWith("RoomID")) continue;
-
-                String[] data = line.split("\\|");
-
-                String roomId = data[0];
-                String name = data[1];
-                String description = data[2];
-
-                Room newRoom = new Room(roomId, name, description);
-
-                newRoom.addExit("N", data[3]);
-                newRoom.addExit("S", data[4]);
-                newRoom.addExit("E", data[5]);
-                newRoom.addExit("W", data[6]);
-
-                rooms.put(roomId, newRoom);
-            }
-            fileScanner.close();
-        }catch(FileNotFoundException e){
-            System.out.println("No file found");
-            System.exit(1);
+    private int parseExit(String roomId, Map<String, Integer> idToIndex) {
+        if (roomId == null || roomId.isBlank() || roomId.equalsIgnoreCase("null")) {
+            return 0;
         }
+        return idToIndex.getOrDefault(roomId, 0);
     }
 
     public int getTotalRooms() {
         return map.size();
     }
 
-    // Centralizes the (roomNumber - 1) index math so it never leaks into Controller.
+    // Centralizes the (roomNumber - 1) index math so it never leaks into
+    // Controller.
     public Room getRoomByNumber(int roomNumber) {
         if (roomNumber >= 1 && roomNumber <= map.size()) {
             return map.get(roomNumber - 1);
@@ -92,14 +96,16 @@ public class Game {
     public int countVisitedRooms() {
         int count = 0;
         for (Room room : map) {
-            if (room.isVisited()) count++;
+            if (room.isVisited())
+                count++;
         }
         return count;
     }
 
     public boolean allRoomsVisited() {
         for (Room room : map) {
-            if (!room.isVisited()) return false;
+            if (!room.isVisited())
+                return false;
         }
         return true;
     }

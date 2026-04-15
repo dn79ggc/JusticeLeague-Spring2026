@@ -1,0 +1,1 @@
+allprojects { task printCp { doLast { println configurations.compileClasspath.files.join(File.pathSeparator) } } }

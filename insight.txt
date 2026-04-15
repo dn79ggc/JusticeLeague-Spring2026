@@ -1,0 +1,26 @@
+
+> Task :dependencyInsight
+org.openjfx:javafx-controls:26
+  Variant compile:
+    | Attribute Name                 | Provided | Requested    |
+    |--------------------------------|----------|--------------|
+    | org.gradle.status              | release  |              |
+    | org.gradle.category            | library  | library      |
+    | org.gradle.libraryelements     | jar      | classes      |
+    | org.gradle.usage               | java-api | java-api     |
+    | org.gradle.dependency.bundling |          | external     |
+    | org.gradle.jvm.environment     |          | standard-jvm |
+    | org.gradle.jvm.version         |          | 26           |
+
+org.openjfx:javafx-controls:26
++--- compileClasspath
+\--- org.openjfx:javafx-fxml:26
+     \--- compileClasspath
+
+(*) - Indicates repeated occurrences of a transitive dependency subtree. Gradle expands transitive dependency subtrees only once per project; repeat occurrences only display the root of the subtree, followed by this annotation.
+
+A web-based, searchable dependency report is available by adding the --scan option.
+
+BUILD SUCCESSFUL in 905ms
+1 actionable task: 1 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.4.1/userguide/configuration_cache_enabling.html

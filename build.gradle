@@ -1,0 +1,75 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(26)
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+
+def javafxVersion = '26'
+def javafxModules = ['javafx.controls', 'javafx.fxml', 'javafx.media']
+
+def javafxPlatform() {
+    def osName = System.getProperty('os.name').toLowerCase()
+    def arch = System.getProperty('os.arch').toLowerCase()
+    if (osName.contains('win')) {
+        return 'win'
+    }
+    if (osName.contains('mac')) {
+        return arch.contains('aarch64') || arch.contains('arm64') ? 'mac-aarch64' : 'mac'
+    }
+    if (osName.contains('linux')) {
+        return arch.contains('aarch64') || arch.contains('arm64') ? 'linux-aarch64' : 'linux'
+    }
+    throw new GradleException("Unsupported OS: ${osName} / ${arch}")
+}
+
+dependencies {
+    implementation "org.openjfx:javafx-base:${javafxVersion}:${javafxPlatform()}"
+    implementation "org.openjfx:javafx-graphics:${javafxVersion}:${javafxPlatform()}"
+    implementation "org.openjfx:javafx-controls:${javafxVersion}:${javafxPlatform()}"
+    implementation "org.openjfx:javafx-fxml:${javafxVersion}:${javafxPlatform()}"
+    implementation "org.openjfx:javafx-media:${javafxVersion}:${javafxPlatform()}"
+}
+
+application {
+    mainClass = 'view.GameGUI'
+}
+
+def javafxRuntimeClasspath = files(configurations.runtimeClasspath.filter { it.name.startsWith('javafx-') })
+def applicationRuntimeClasspath = files(sourceSets.main.runtimeClasspath.filter { !it.name.startsWith('javafx-') })
+
+def javafxJvmArgs = [
+    '--module-path', javafxRuntimeClasspath.asPath,
+    '--add-modules', javafxModules.join(',')
+]
+
+tasks.register('runTextGame', JavaExec) {
+    group = 'application'
+    description = 'Run the terminal text game'
+    classpath = applicationRuntimeClasspath
+    mainClass.set('controller.Main')
+    jvmArgs = javafxJvmArgs
+}
+
+tasks.register('runGui', JavaExec) {
+    group = 'application'
+    description = 'Run the JavaFX GUI'
+    classpath = applicationRuntimeClasspath
+    mainClass.set('view.GameGUI')
+    jvmArgs = javafxJvmArgs
+}

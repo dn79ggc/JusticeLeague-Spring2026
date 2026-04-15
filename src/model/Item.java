@@ -16,4 +16,20 @@ public class Item {
     private boolean equippable;
     private boolean consumable;
     private String keyTarget;
+
+    public Item() {
+        this.name = "Item";
+    }
+
+    public Item(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getInfo() {
+        return name;
+    }
 }

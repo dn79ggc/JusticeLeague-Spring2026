@@ -1,4 +1,5 @@
 package model;
+
 import java.util.*;
 
 public class Room {
@@ -6,8 +7,8 @@ public class Room {
     private String name;
     private String roomDescription;
     private boolean visited = false;
-    private Map <String, String> exits;
-    private ArrayList<Item> itemsInRoom;
+    private Map<String, Integer> exits;
+    private List<Item> itemsInRoom;
     private Monster monster;
     private Puzzle puzzle;
 
@@ -19,7 +20,6 @@ public class Room {
         this.exits = new HashMap<>();
         this.monster = null;
         this.puzzle = null;
-
     }
 
     public String getRoomId() {
@@ -30,11 +30,19 @@ public class Room {
         return name;
     }
 
+    public String getRoomName() {
+        return name;
+    }
+
     public String getRoomDescription() {
         return roomDescription;
     }
 
     public boolean hasVisited() {
+        return visited;
+    }
+
+    public boolean isVisited() {
         return visited;
     }
 
@@ -58,25 +66,43 @@ public class Room {
         this.puzzle = puzzle;
     }
 
-    public void addItem(Item item){
+    public boolean hasPuzzle() {
+        return puzzle != null;
+    }
+
+    public void addItem(Item item) {
         itemsInRoom.add(item);
     }
 
-    public void removeItem(String item){
-        this.itemsInRoom.remove(item);
+    public void removeItem(Item item) {
+        itemsInRoom.remove(item);
     }
 
-    public void addExit(String direction, String roomId){
-        if(roomId != null && !roomId.equals("null")){
-            exits.put(direction, roomId);
+    public void removeItem(String item) {
+        itemsInRoom.removeIf(i -> i.getName().equals(item));
+    }
+
+    public List<Item> getItems() {
+        return itemsInRoom;
+    }
+
+    public void addExit(String direction, int destinationRoomNumber) {
+        if (destinationRoomNumber > 0) {
+            exits.put(direction, destinationRoomNumber);
         }
     }
 
-    public void getExit(String direction){
-        exits.getOrDefault(direction, null);
+    public int getExit(int directionIndex) {
+        return switch (directionIndex) {
+            case 0 -> exits.getOrDefault("N", 0);
+            case 1 -> exits.getOrDefault("E", 0);
+            case 2 -> exits.getOrDefault("S", 0);
+            case 3 -> exits.getOrDefault("W", 0);
+            default -> 0;
+        };
     }
 
-
-
-
+    public String getFullDescription() {
+        return roomDescription;
+    }
 }

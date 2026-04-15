@@ -4,21 +4,9 @@
         {
             "label": "Build Project",
             "type": "shell",
-            "command": "javac",
+            "command": "${workspaceFolder}/gradlew",
             "args": [
-                "--module-path",
-                "${workspaceFolder}/lib/javafx-sdk-26/lib",
-                "--add-modules",
-                "javafx.controls,javafx.fxml,javafx.media",
-                "-d",
-                "${workspaceFolder}/bin",
-                "${workspaceFolder}/src/controller/Main.java",
-                "${workspaceFolder}/src/controller/GameController.java",
-                "${workspaceFolder}/src/model/Game.java",
-                "${workspaceFolder}/src/model/Player.java",
-                "${workspaceFolder}/src/model/Room.java",
-                "${workspaceFolder}/src/view/GameView.java",
-                "${workspaceFolder}/src/view/GameGUI.java"
+                "build"
             ],
             "group": {
                 "kind": "build",
@@ -29,26 +17,18 @@
         {
             "label": "Run Text Game",
             "type": "shell",
-            "command": "java",
+            "command": "${workspaceFolder}/gradlew",
             "args": [
-                "-cp",
-                "${workspaceFolder}/bin",
-                "controller.Main"
+                "runTextGame"
             ],
             "group": "none"
         },
         {
             "label": "Run JavaFX GUI",
             "type": "shell",
-            "command": "java",
+            "command": "${workspaceFolder}/gradlew",
             "args": [
-                "--module-path",
-                "${workspaceFolder}/lib/javafx-sdk-26/lib",
-                "--add-modules",
-                "javafx.controls,javafx.fxml,javafx.media",
-                "-cp",
-                "${workspaceFolder}/bin",
-                "view.GameGUI"
+                "runGui"
             ],
             "group": "none"
         }

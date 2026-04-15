@@ -8,32 +8,48 @@ The project uses a simple MVC architecture to separate game state, display, and 
 
 ## Quick Start
 
+This project now includes a Gradle wrapper so the repository can be built and run from any supported machine with Java 26 installed.
+
 From the project root:
 
 ```powershell
-# Compile the text game
-javac -d bin src/model/*.java src/view/GameView.java src/controller/*.java
-
-# Run the text mode game
-java -cp bin controller.Main
+# Build the project
+./gradlew build
 ```
 
 ```powershell
-# Compile the JavaFX GUI
-javac --module-path lib/javafx-sdk-26/lib --add-modules javafx.controls,javafx.fxml,javafx.media -d bin src/view/GameGUI.java
+# Run the terminal text game
+./gradlew runTextGame
+```
 
+```powershell
 # Run the JavaFX GUI
-java --module-path lib/javafx-sdk-26/lib --add-modules javafx.controls,javafx.fxml,javafx.media -cp bin view.GameGUI
+./gradlew runGui
+```
+
+On Windows PowerShell, use `./gradlew.bat` if needed:
+
+```powershell
+./gradlew.bat runGui
 ```
 
 ---
 
 ## Requirements
 
-- Java 26
-- JavaFX 26 for the GUI mode
+- Java 26 installed and available on the PATH or via `JAVA_HOME`
 
-This repo is configured to use `${env:JAVA_HOME}` so the shared workspace is not tied to one machine.
+The project now downloads JavaFX dependencies automatically through Gradle, so no extra IDE-specific JavaFX module setup is required.
+
+---
+
+## Notes
+
+- `bin/` contains generated class files and is ignored by Git.
+- `build/` and `.gradle/` are now ignored because Gradle handles build outputs.
+- `lib/javafx-sdk-26/` is no longer required for builds and should not be committed to the repository.
+- Local Gradle distribution ZIPs such as `gradle-8.5-bin.zip` and temporary folders like `tmp-gradle*` should also be excluded from commits.
+- Current build attempts still fail because the repository is missing some model source classes (`Monster`, `Puzzle`, `Weapon`, `Armor`, `StatusEffect`, `EffectType`, `KeyItem`, etc.). Once those files are restored, the Gradle setup should compile and run the GUI with Java 26.
 
 ### Verify Java 26
 
@@ -50,22 +66,22 @@ It should report something like `java version "26"`.
 ```
 JusticeLeague-Spring2026/
 +-- lib/                 # JavaFX SDK and support files
-¦   +-- javafx-sdk-26/
+ï¿½   +-- javafx-sdk-26/
 +-- src/
-¦   +-- controller/      # Input handling and game flow
-¦   ¦   +-- GameController.java
-¦   ¦   +-- Main.java
-¦   +-- model/           # Game data and rules
-¦   ¦   +-- Game.java
-¦   ¦   +-- Player.java
-¦   ¦   +-- Room.java
-¦   +-- view/            # Output and UI components
-¦       +-- GameGUI.java
-¦       +-- GameView.java
+ï¿½   +-- controller/      # Input handling and game flow
+ï¿½   ï¿½   +-- GameController.java
+ï¿½   ï¿½   +-- Main.java
+ï¿½   +-- model/           # Game data and rules
+ï¿½   ï¿½   +-- Game.java
+ï¿½   ï¿½   +-- Player.java
+ï¿½   ï¿½   +-- Room.java
+ï¿½   +-- view/            # Output and UI components
+ï¿½       +-- GameGUI.java
+ï¿½       +-- GameView.java
 +-- data/                # Map files and game data
-¦   +-- Rooms.txt
-¦   +-- Rooms1.txt
-¦   +-- Rooms2.txt
+ï¿½   +-- Rooms.txt
+ï¿½   +-- Rooms1.txt
+ï¿½   +-- Rooms2.txt
 +-- bin/                 # Compiled .class files (auto-generated)
 +-- README.md
 ```
@@ -74,24 +90,24 @@ JusticeLeague-Spring2026/
 
 ## Class Overview
 
-### Model — `src/model/`
+### Model ï¿½ `src/model/`
 > Stores game state and movement rules.
 
-- `Room.java` — Represents a room with exits, a description, and visited state.
-- `Player.java` — Tracks the player's location, moves, and rooms discovered.
-- `Game.java` — Loads the room map from `data/`, returns room data, and checks win conditions.
+- `Room.java` ï¿½ Represents a room with exits, a description, and visited state.
+- `Player.java` ï¿½ Tracks the player's location, moves, and rooms discovered.
+- `Game.java` ï¿½ Loads the room map from `data/`, returns room data, and checks win conditions.
 
-### View — `src/view/`
+### View ï¿½ `src/view/`
 > Renders output and UI.
 
-- `GameView.java` — Terminal-based display methods for the text game.
-- `GameGUI.java` — JavaFX-based UI shell with buttons and status panels.
+- `GameView.java` ï¿½ Terminal-based display methods for the text game.
+- `GameGUI.java` ï¿½ JavaFX-based UI shell with buttons and status panels.
 
-### Controller — `src/controller/`
+### Controller ï¿½ `src/controller/`
 > Coordinates input, model updates, and view output.
 
-- `GameController.java` — Runs the text game loop and interprets movement commands.
-- `Main.java` — Application entry point for text mode.
+- `GameController.java` ï¿½ Runs the text game loop and interprets movement commands.
+- `Main.java` ï¿½ Application entry point for text mode.
 
 ---
 
@@ -103,9 +119,9 @@ Each line in `data/*.txt` describes one room:
 roomNumber,north,east,south,west,description
 ```
 
-- `roomNumber` — unique integer ID (1-based)
-- `north/east/south/west` — room number in that direction, `0` if no exit
-- `description` — short label for the room
+- `roomNumber` ï¿½ unique integer ID (1-based)
+- `north/east/south/west` ï¿½ room number in that direction, `0` if no exit
+- `description` ï¿½ short label for the room
 
 **Example:**
 

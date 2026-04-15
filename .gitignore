@@ -13,8 +13,18 @@ bin/**/*.class
 
 # Build directories
 bin/
+build/
 out/
 target/
+
+# Gradle files
+.gradle/
+gradle-*.zip
+tmp-gradle*/
+buildlog.txt
+
+# Local JavaFX SDK
+lib/javafx-sdk-26/
 
 # OS files
 .DS_Store

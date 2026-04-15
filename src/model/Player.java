@@ -287,7 +287,7 @@ public class Player {
             return false;
         }
 
-        if (!addToInventory(item) && (!item instanceof KeyItem)) {
+        if (!addToInventory(item) && !(item instanceof KeyItem)) {
             return false; // inventory full
         }
 
