@@ -6,10 +6,18 @@
         "lib/javafx-sdk-26/lib/*.jar"
     ],
     "java.configuration.runtimes": [
+        
+        
         {
             "name": "JavaSE-26",
-            "path": "${env:JAVA_HOME}",
+            "path": "C:\\Program Files\\Java\\jdk-26",
             "default": true
         }
-    ]
+    ],
+    "terminal.integrated.env.windows": {
+        "PATH": "${env:PATH};C:\\Program Files\\Java\\jdk-26\\bin"
+    },
+    "[java]": {
+        "editor.suggest.snippetsPreventQuickSuggestions": false
+    }
 }
