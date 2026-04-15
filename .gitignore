@@ -11,9 +11,6 @@ bin/**/*.class
 .classpath
 .settings/
 
-# Customization Files
-.vscode/settings.json
-
 # Build directories
 bin/
 out/
