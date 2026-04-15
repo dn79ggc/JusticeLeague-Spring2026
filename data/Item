@@ -1,0 +1,17 @@
+Name,Item Type,Rarity,Location,Benefits,Weaknesses
+Rusting Armor,Armor,Common,Graveyard,+10 DEF,None
+Police Armor,Armor,Rare,Mayor,+25 DEF,None
+Military Armor,Armor,Legendary,Office,+45 DEF,None
+Health Potion,Consumable,Common,Bell Tower,+25 HP,None
+Health Potion,Consumable,Common,Guard Post,+25 HP,None
+Jack Daniel’s,Consumable,Rare,Bar,+50 DEF for one turn,-10 HP
+Hearty Meal,Consumable,Epic,Kitchen,+50 HP,None
+Health Potion,Consumable,Common,Meeting,+25 HP,None
+Prison Key,Key Item,Mythical,Church Path,Unlocks Guard Tower,None
+Poker Chips,Key Item,Mythical,Cells,Gambling Puzzle,None
+Office Keys,Key Item,Mythical,Records,Office Key,None
+Crude Dagger,Melee Weapon,Uncommon,Confessional,+5 ATK DMG,None
+Steel Sword,Melee Weapon,Rare,Cellar,+20 ATK DMG,None
+Assassin's Dagger,Melee Weapon,Legendary,Living,+35 ATK DMG; Causes Monster’s Next Attack to Miss,Endgame Weapon
+Crossbow,Ranged Weapon,Epic,Armory,+15 DMG,10% Miss Chance
+‘Old Reliable’ Shotgun,Ranged Weapon,Legendary,Storage,+35 DMG,5% Miss Chance
