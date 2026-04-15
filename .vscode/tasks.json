@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Project",
+            "type": "shell",
+            "command": "javac",
+            "args": [
+                "--module-path",
+                "${workspaceFolder}/lib/javafx-sdk-26/lib",
+                "--add-modules",
+                "javafx.controls,javafx.fxml,javafx.media",
+                "-d",
+                "${workspaceFolder}/bin",
+                "${workspaceFolder}/src/controller/Main.java",
+                "${workspaceFolder}/src/controller/GameController.java",
+                "${workspaceFolder}/src/model/Game.java",
+                "${workspaceFolder}/src/model/Player.java",
+                "${workspaceFolder}/src/model/Room.java",
+                "${workspaceFolder}/src/view/GameView.java",
+                "${workspaceFolder}/src/view/GameGUI.java"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$javac"]
+        },
+        {
+            "label": "Run Text Game",
+            "type": "shell",
+            "command": "java",
+            "args": [
+                "-cp",
+                "${workspaceFolder}/bin",
+                "controller.Main"
+            ],
+            "group": "none"
+        },
+        {
+            "label": "Run JavaFX GUI",
+            "type": "shell",
+            "command": "java",
+            "args": [
+                "--module-path",
+                "${workspaceFolder}/lib/javafx-sdk-26/lib",
+                "--add-modules",
+                "javafx.controls,javafx.fxml,javafx.media",
+                "-cp",
+                "${workspaceFolder}/bin",
+                "view.GameGUI"
+            ],
+            "group": "none"
+        }
+    ]
+}

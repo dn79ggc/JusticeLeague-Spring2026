@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Run Text Game",
+      "request": "launch",
+      "mainClass": "controller.Main"
+    },
+    {
+      "type": "java",
+      "name": "Run JavaFX GUI",
+      "request": "launch",
+      "mainClass": "view.GameGUI",
+      "vmArgs": "--module-path ${workspaceFolder}/lib/javafx-sdk-26/lib --add-modules javafx.controls,javafx.fxml,javafx.media"
+    }
+  ]
+}

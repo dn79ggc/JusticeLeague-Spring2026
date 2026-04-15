@@ -1,5 +1,15 @@
+
 {
     "java.project.sourcePaths": ["src"],
     "java.project.outputPath": "bin",
-    "java.project.referencedLibraries": []
+    "java.project.referencedLibraries": [
+        "lib/javafx-sdk-26/lib/*.jar"
+    ],
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-26",
+            "path": "${env:JAVA_HOME}",
+            "default": true
+        }
+    ]
 }
