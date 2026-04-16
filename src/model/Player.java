@@ -2,10 +2,13 @@ package model;
 
 import java.util.List;
 import java.util.ArrayList;
+import tech.tablesaw.api.Row;
+import tech.tablesaw.api.Table;
 
 public class Player {
 
     // Navigation & Tracking
+    private String name;
     private int location;
     private int roomsVisited;
     private int totalMoves;
@@ -34,8 +37,13 @@ public class Player {
 
     // Constructor
     public Player(int startingLocation) {
+        this("Explorer", startingLocation);
+    }
+
+    public Player(String name, int startingLocation) {
+        this.name = name == null || name.isBlank() ? "Explorer" : name;
         this.location = startingLocation;
-        this.roomsVisited = 1; // Player starts in Room 1, which counts
+        this.roomsVisited = 1; // Player starts in a room, which counts
         this.totalMoves = 0;
 
         // Combat defaults
@@ -64,6 +72,81 @@ public class Player {
     public void setLocation(int newLocation) {
         this.location = newLocation;
         this.totalMoves++;
+    }
+
+    public void setLocationNoMove(int newLocation) {
+        this.location = newLocation;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setCurrentHP(int currentHP) {
+        this.currentHP = Math.max(0, Math.min(currentHP, this.maxHP));
+    }
+
+    public void setMaxHP(int maxHP) {
+        this.maxHP = Math.max(1, maxHP);
+        if (this.currentHP > this.maxHP) {
+            this.currentHP = this.maxHP;
+        }
+    }
+
+    public void setBaseAttack(int baseAttack) {
+        this.baseAttack = baseAttack;
+    }
+
+    public void setBaseDefense(int baseDefense) {
+        this.baseDefense = baseDefense;
+    }
+
+    public static Player loadFromCsv(String filePath, Game game) {
+        Player player = new Player("Explorer", 1);
+        if (game == null) {
+            return player;
+        }
+        try {
+            Table table = Table.read().csv(filePath);
+            if (table.rowCount() == 0) {
+                return player;
+            }
+            Row row = table.row(0);
+            String playerName = row.getString("Name");
+            String roomId = row.getString("CurrentRoomID");
+            int currentHP = parseInt(row.getString("CurrentHP"), 100);
+            int maxHP = parseInt(row.getString("MaxHP"), 100);
+            int baseAttack = parseInt(row.getString("BaseAttack"), 10);
+            int baseDefense = parseInt(row.getString("BaseDefense"), 5);
+
+            int roomNumber = game.getRoomNumberById(roomId);
+            if (roomNumber == 0) {
+                roomNumber = 1;
+            }
+            Player loaded = new Player(playerName, roomNumber);
+            loaded.setMaxHP(maxHP);
+            loaded.setCurrentHP(currentHP);
+            loaded.setBaseAttack(baseAttack);
+            loaded.setBaseDefense(baseDefense);
+            return loaded;
+        } catch (Exception e) {
+            return player;
+        }
+    }
+
+    private static int parseInt(String raw, int fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     public void incrementRoomsVisited() {
@@ -186,6 +269,10 @@ public class Player {
         return currentHP > 0;
     }
 
+    public int getCurrentHP() {
+        return currentHP;
+    }
+
     public int getAttackValue() {
         int attack = baseAttack;
         if (equippedWeapon != null) {
@@ -220,6 +307,18 @@ public class Player {
 
     }
 
+    public int getMaxHP() {
+        return maxHP;
+    }
+
+    public Weapon getEquippedWeapon() {
+        return equippedWeapon;
+    }
+
+    public Armor getEquippedArmor() {
+        return equippedArmor;
+    }
+
     public void clearStatusEffects() {
         statusEffects.clear();
     }
@@ -252,10 +351,6 @@ public class Player {
     }
 
     // Info for Save / UI
-    public String getName() {
-        return "Player";
-    }
-
     public String getStatus() {
         return "HP: " + currentHP + "/" + maxHP +
                 " | ATK: " + getAttackValue() +

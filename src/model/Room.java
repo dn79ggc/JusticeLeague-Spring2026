@@ -66,6 +66,10 @@ public class Room {
         this.puzzle = puzzle;
     }
 
+    public void removePuzzle() {
+        this.puzzle = null;
+    }
+
     public boolean hasPuzzle() {
         return puzzle != null;
     }

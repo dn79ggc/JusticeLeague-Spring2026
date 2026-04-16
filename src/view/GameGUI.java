@@ -7,7 +7,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -28,6 +30,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import model.Game;
+import model.Player;
+import model.Room;
+import model.Puzzle;
+import model.PuzzleLoader;
 
 public class GameGUI extends Application {
 
@@ -38,6 +48,17 @@ public class GameGUI extends Application {
         PUZZLE_TEXT,
         PUZZLE_CARD,
         GAME_OVER
+    }
+
+    private enum PuzzleUIType {
+        NONE,
+        SCRAMBLE,
+        NUMBER_GUESS,
+        RPS,
+        POKER,
+        DICE,
+        RIDDLE,
+        SELECTION
     }
 
     private static final String UI_FONT = "Segoe UI";
@@ -55,12 +76,14 @@ public class GameGUI extends Application {
     private Button btnSaveMenu;
     private Button btnQuitMenu;
     private Button btnNewGame;
+    private Map<String, PuzzleLoader.PuzzleDefinition> puzzleDefinitions = new HashMap<>();
     private Button btnLoadGame;
     private Button btnQuitMainMenu;
     private Button btnNorth;
     private Button btnSouth;
     private Button btnEast;
     private Button btnWest;
+    private Button btnSolvePuzzle;
     private Button btnExploreAction;
     private Button btnInventory;
     private Button btnStatus;
@@ -80,8 +103,59 @@ public class GameGUI extends Application {
     private Button btnRestartGameOver;
     private Button btnQuitGameOver;
 
+    private Label lblPuzzleNarrative;
+    private TextField puzzleInputField;
+    private HBox letterBlocksRow;
+    private HBox numberGuessRow;
+    private HBox rpsButtonRow;
+    private HBox selectionButtonsRow;
+    private Label puzzleResultLabel;
+    private Label diceFaceLabel;
+    private Label puzzleCardResultLabel;
+    private HBox cardRow;
+    private VBox cardGhostPanel;
+    private VBox cardPlayerPanel;
+    private Puzzle activePuzzle;
+    private PuzzleUIType activePuzzleType = PuzzleUIType.NONE;
+
+    private Game game;
+    private Player player;
+    private int selectedRoomNumber;
+    private GridPane mapGrid;
+    private Map<String, StackPane> mapCells = new HashMap<>();
+    private TextArea outputArea;
+    private Label lblPlayerName;
+    private ProgressBar pbPlayerHP;
+    private Label lblHPValues;
+    private Label lblATK;
+    private Label lblDEF;
+    private Label lblBag;
+    private Label lblEquippedWeapon;
+    private Label lblEquippedArmor;
+    private Label lblRoomName;
+    private Label lblRoomID;
+    private Label lblExits;
+    private Label lblRoomDescription;
+    private Label lblPuzzleCardTitle;
+
     @Override
     public void start(Stage stage) {
+        loadPuzzleDefinitions();
+
+        game = new Game();
+        if (!game.mapGenerate("rooms.csv")) {
+            System.out.println("Failed to load rooms from data/rooms.csv.");
+        }
+        if (!game.loadPuzzles("puzzles.csv")) {
+            System.out.println("Failed to load puzzles from data/puzzles.csv.");
+        }
+        player = Player.loadFromCsv("data/player_data.csv", game);
+        selectedRoomNumber = player.getLocation();
+        Room startingRoom = game.getRoomByNumber(player.getLocation());
+        if (startingRoom != null) {
+            startingRoom.setVisited();
+        }
+
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(14));
         root.setStyle("-fx-background-color: #111827;");
@@ -105,6 +179,8 @@ public class GameGUI extends Application {
             } else if (e.getCode() == KeyCode.DIGIT1) {
                 if (btnNewGame != null && isNodeVisible(btnNewGame)) {
                     btnNewGame.fire();
+                } else if (btnSolvePuzzle != null && isNodeVisible(btnSolvePuzzle)) {
+                    btnSolvePuzzle.fire();
                 } else if (btnExploreAction != null && isNodeVisible(btnExploreAction)) {
                     btnExploreAction.fire();
                 } else if (btnAttack != null && isNodeVisible(btnAttack)) {
@@ -177,6 +253,9 @@ public class GameGUI extends Application {
         stage.setScene(scene);
         stage.show();
 
+        updatePlayerInfo();
+        updateRoomInfo();
+        updateMapGrid();
         setGameState(GameState.MAIN_MENU);
     }
 
@@ -209,7 +288,7 @@ public class GameGUI extends Application {
         centerColumn.setPadding(new Insets(0, 12, 0, 12));
         centerColumn.setAlignment(Pos.TOP_CENTER);
 
-        TextArea outputArea = new TextArea();
+        outputArea = new TextArea();
         outputArea.setText(
                 "Welcome to Text Explorer. This output panel will display the current scene, story text, and game results.\n\nUse the buttons below to navigate game state and control the application.");
         outputArea.setWrapText(true);
@@ -253,26 +332,17 @@ public class GameGUI extends Application {
         mapTitle.setFont(Font.font(UI_FONT, FontWeight.BOLD, 18));
         mapTitle.setTextFill(Color.web(UI_TEXT_COLOR));
 
-        GridPane mapGrid = new GridPane();
+        mapGrid = new GridPane();
         mapGrid.setHgap(4);
         mapGrid.setVgap(4);
         mapGrid.setPadding(new Insets(6));
         mapGrid.setStyle(UI_PANEL_STYLE);
 
-        for (int row = 0; row < 5; row++) {
-            for (int col = 0; col < 5; col++) {
-                Label cell = new Label((row == 2 && col == 2) ? "You" : "▒");
-                cell.setFont(Font.font("Consolas", 14));
-                cell.setMinSize(52, 52);
-                cell.setAlignment(Pos.CENTER);
-                cell.setStyle((row == 2 && col == 2)
-                        ? "-fx-background-color: #2563eb; -fx-text-fill: white; -fx-border-color: #4b5563;"
-                        : "-fx-background-color: #111827; -fx-text-fill: #9ca3af; -fx-border-color: #374151;");
-                mapGrid.add(cell, col, row);
-            }
-        }
+        buildMapGrid();
+        updateMapGrid();
 
-        Label mapHint = new Label("Current location updates automatically as the player moves.");
+        Label mapHint = new Label(
+                "Current location and visited rooms are shown on the map. Click a room to view details.");
         mapHint.setTextFill(Color.web("#9ca3af"));
         mapHint.setWrapText(true);
 
@@ -281,22 +351,150 @@ public class GameGUI extends Application {
         return rightColumn;
     }
 
+    private StackPane createMapCellPane(int row, int col) {
+        StackPane cell = new StackPane();
+        cell.setMinSize(52, 52);
+        cell.setPrefSize(52, 52);
+        cell.setStyle(
+                "-fx-background-color: #0f172a; -fx-border-color: #000000; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-radius: 8;");
+        mapCells.put(cellKey(row, col), cell);
+        return cell;
+    }
+
+    private String cellKey(int row, int col) {
+        return row + "," + col;
+    }
+
+    private void buildMapGrid() {
+        mapCells.clear();
+        mapGrid.getChildren().clear();
+        if (game == null) {
+            return;
+        }
+
+        int rows = game.getMapRows();
+        int cols = game.getMapCols();
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                StackPane cell = createMapCellPane(row, col);
+                mapGrid.add(cell, col, row);
+            }
+        }
+    }
+
+    private void updateMapGrid() {
+        if (game == null) {
+            return;
+        }
+
+        int rows = game.getMapRows();
+        int cols = game.getMapCols();
+        mapGrid.getChildren().clear();
+
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                int roomNumber = getRoomNumberAtPosition(row, col);
+                StackPane cell = mapCells.get(cellKey(row, col));
+                if (cell == null) {
+                    cell = createMapCellPane(row, col);
+                }
+                cell.getChildren().clear();
+                mapGrid.add(cell, col, row);
+                if (roomNumber == 0) {
+                    cell.setStyle(
+                            "-fx-background-color: #0f172a; -fx-border-color: #0f172a; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-radius: 8;");
+                    cell.setOnMouseClicked(null);
+                    continue;
+                }
+
+                Room room = game.getRoomByNumber(roomNumber);
+                boolean visited = room != null && room.isVisited();
+                boolean isCurrent = player != null && player.getLocation() == roomNumber;
+                if (!visited && !isCurrent) {
+                    cell.setStyle(
+                            "-fx-background-color: #0f172a; -fx-border-color: #0f172a; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-radius: 8;");
+                    cell.setOnMouseClicked(null);
+                    continue;
+                }
+
+                String backgroundColor = isCurrent ? "#2563eb" : "#111827";
+                String textColor = isCurrent ? "white" : "#9ca3af";
+                String displayText = isCurrent ? "You" : room.getRoomId();
+
+                String topBorder = room.getExit(0) > 0 ? "transparent" : "#000000";
+                String rightBorder = room.getExit(1) > 0 ? "transparent" : "#000000";
+                String bottomBorder = room.getExit(2) > 0 ? "transparent" : "#000000";
+                String leftBorder = room.getExit(3) > 0 ? "transparent" : "#000000";
+                String topWidth = room.getExit(0) > 0 ? "1" : "3";
+                String rightWidth = room.getExit(1) > 0 ? "1" : "3";
+                String bottomWidth = room.getExit(2) > 0 ? "1" : "3";
+                String leftWidth = room.getExit(3) > 0 ? "1" : "3";
+                cell.setStyle(String.format(
+                        "-fx-background-color: %s; -fx-border-color: %s %s %s %s; -fx-border-width: %s %s %s %s; -fx-border-radius: 8; -fx-background-radius: 8;",
+                        backgroundColor, topBorder, rightBorder, bottomBorder, leftBorder,
+                        topWidth, rightWidth, bottomWidth, leftWidth));
+
+                Label cellLabel = new Label(displayText);
+                cellLabel.setFont(Font.font("Consolas", FontWeight.BOLD, 12));
+                cellLabel.setTextFill(Color.web(textColor));
+                cellLabel.setWrapText(true);
+                cell.getChildren().add(cellLabel);
+
+                cell.setOnMouseClicked(e -> {
+                    selectedRoomNumber = roomNumber;
+                    updateRoomInfo();
+                    outputArea.appendText("\nSelected room: " + room.getRoomId() + " — " + room.getName() + "\n");
+                });
+            }
+        }
+    }
+
+    private int getRoomNumberAtPosition(int row, int col) {
+        if (game == null) {
+            return 0;
+        }
+        int actualRow = row + game.getMapMinRow();
+        int actualCol = col + game.getMapMinCol();
+        return game.getRoomNumberAt(actualRow, actualCol);
+    }
+
+    private boolean hasRoomAt(int row, int col) {
+        return getRoomNumberAtPosition(row, col) > 0;
+    }
+
+    private int[] getRoomCoordinates(int roomNumber) {
+        Room room = game.getRoomByNumber(roomNumber);
+        if (room == null) {
+            return null;
+        }
+        return game.getRoomCoordinates(room.getRoomId());
+    }
+
+    private void resetScrambleLetters() {
+        for (javafx.scene.Node node : letterBlocksRow.getChildren()) {
+            if (node instanceof Button button) {
+                button.setDisable(false);
+                button.setOpacity(1.0);
+            }
+        }
+    }
+
     private VBox createPlayerInfoSection() {
         GridPane grid = new GridPane();
         grid.setHgap(8);
         grid.setVgap(10);
         grid.setPadding(new Insets(0));
 
-        Label lblPlayerName = createSectionLabel("Playing as: [name]");
+        lblPlayerName = createSectionLabel("Playing as: [name]");
         Label lblHP = createSectionLabel("HP:");
-        ProgressBar pbPlayerHP = new ProgressBar(0.65);
+        pbPlayerHP = new ProgressBar(0);
         pbPlayerHP.setPrefWidth(180);
-        Label lblHPValues = createSectionLabel("65 / 100");
-        Label lblATK = createSectionLabel("ATK: 15");
-        Label lblDEF = createSectionLabel("DEF: 10");
-        Label lblBag = createSectionLabel("Bag: 5 / 7");
-        Label lblEquippedWeapon = createSectionLabel("Weapon: Crude Dagger (+5 ATK)");
-        Label lblEquippedArmor = createSectionLabel("Armor: Rusting Armor (+10 DEF)");
+        lblHPValues = createSectionLabel("0 / 0");
+        lblATK = createSectionLabel("ATK: 0");
+        lblDEF = createSectionLabel("DEF: 0");
+        lblBag = createSectionLabel("Bag: 0 / 7");
+        lblEquippedWeapon = createSectionLabel("Weapon: None");
+        lblEquippedArmor = createSectionLabel("Armor: None");
         Label lblStatusHeader = createSectionLabel("Status Effects:");
 
         ListView<String> lstStatusEffects = new ListView<>();
@@ -365,13 +563,13 @@ public class GameGUI extends Application {
         VBox box = new VBox(8);
         box.setPadding(new Insets(10));
 
-        Label lblRoomName = createSectionLabel("Guard Post");
+        lblRoomName = createSectionLabel("Guard Post");
         lblRoomName.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
-        Label lblRoomID = createSectionLabel("GH-02 · Guardhouse");
+        lblRoomID = createSectionLabel("GH-02 · Guardhouse");
         lblRoomID.setTextFill(Color.web("#9ca3af"));
-        Label lblExits = createSectionLabel("Exits: N  E  W");
+        lblExits = createSectionLabel("Exits: N  E  W");
         Label lblDescHeader = createSectionLabel("Description:");
-        Label lblRoomDescription = createSectionLabel("A watchful guard post overlooking the eastern road.");
+        lblRoomDescription = createSectionLabel("A watchful guard post overlooking the eastern road.");
         lblRoomDescription.setWrapText(true);
 
         box.getChildren().addAll(lblRoomName, lblRoomID, lblExits, new Separator(), lblDescHeader, lblRoomDescription);
@@ -428,8 +626,16 @@ public class GameGUI extends Application {
 
         btnSaveMenu.setOnAction(e -> System.out.println("Save action triggered."));
         btnQuitMenu.setOnAction(e -> {
-            System.out.println("Quit from quick menu.");
-            Platform.exit();
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Return to the main menu? Use Quit on the main menu to exit the game.",
+                    ButtonType.YES, ButtonType.NO);
+            confirm.setTitle("Confirm Exit");
+            confirm.setHeaderText("Exit to Main Menu");
+            confirm.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.YES) {
+                    setGameState(GameState.MAIN_MENU);
+                }
+            });
         });
 
         box.getChildren().addAll(title, btnSaveMenu, btnQuitMenu);
@@ -453,7 +659,40 @@ public class GameGUI extends Application {
         btnLoadGame.setOnAction(e -> setGameState(GameState.EXPLORATION));
         btnQuitMainMenu.setOnAction(e -> Platform.exit());
 
-        box.getChildren().addAll(btnNewGame, btnLoadGame, btnQuitMainMenu);
+        Label lblTestHeader = createSectionLabel("Puzzle Test Launcher");
+        lblTestHeader.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+        lblTestHeader.setTextFill(Color.web("#fca5a5"));
+
+        GridPane puzzleTestGrid = new GridPane();
+        puzzleTestGrid.setHgap(10);
+        puzzleTestGrid.setVgap(10);
+        puzzleTestGrid.setPadding(new Insets(10, 0, 0, 0));
+
+        Button btnTestP01 = createPuzzleTestButton("P01 Scramble", "P01", GameState.PUZZLE_TEXT, PuzzleUIType.SCRAMBLE);
+        Button btnTestP02 = createPuzzleTestButton("P02 Number", "P02", GameState.PUZZLE_TEXT,
+                PuzzleUIType.NUMBER_GUESS);
+        Button btnTestP03 = createPuzzleTestButton("P03 RPS", "P03", GameState.PUZZLE_TEXT, PuzzleUIType.RPS);
+        Button btnTestP05 = createPuzzleTestButton("P05 Poker", "P05", GameState.PUZZLE_CARD, PuzzleUIType.POKER);
+        Button btnTestP06 = createPuzzleTestButton("P06 Dice", "P06", GameState.PUZZLE_CARD, PuzzleUIType.DICE);
+        Button btnTestP07 = createPuzzleTestButton("P07 Ghost", "P07", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
+        Button btnTestP08 = createPuzzleTestButton("P08 Vampire", "P08", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
+        Button btnTestP09 = createPuzzleTestButton("P09 Shadow", "P09", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
+        Button btnTestP10 = createPuzzleTestButton("P10 Wind", "P10", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
+        Button btnTestP11 = createPuzzleTestButton("P11 Key", "P11", GameState.PUZZLE_CARD, PuzzleUIType.SELECTION);
+
+        puzzleTestGrid.add(btnTestP01, 0, 0);
+        puzzleTestGrid.add(btnTestP02, 1, 0);
+        puzzleTestGrid.add(btnTestP03, 0, 1);
+        puzzleTestGrid.add(btnTestP05, 1, 1);
+        puzzleTestGrid.add(btnTestP06, 0, 2);
+        puzzleTestGrid.add(btnTestP07, 1, 2);
+        puzzleTestGrid.add(btnTestP08, 0, 3);
+        puzzleTestGrid.add(btnTestP09, 1, 3);
+        puzzleTestGrid.add(btnTestP10, 0, 4);
+        puzzleTestGrid.add(btnTestP11, 1, 4);
+
+        box.getChildren().addAll(btnNewGame, btnLoadGame, btnQuitMainMenu, new Separator(), lblTestHeader,
+                puzzleTestGrid);
         return box;
     }
 
@@ -483,18 +722,26 @@ public class GameGUI extends Application {
         GridPane.setHalignment(btnNorth, HPos.CENTER);
         GridPane.setHalignment(btnSouth, HPos.CENTER);
 
+        btnNorth.setOnAction(e -> movePlayer("N"));
+        btnSouth.setOnAction(e -> movePlayer("S"));
+        btnEast.setOnAction(e -> movePlayer("E"));
+        btnWest.setOnAction(e -> movePlayer("W"));
+
         HBox actionRow = new HBox(10);
         actionRow.setAlignment(Pos.CENTER);
-        btnExploreAction = new Button("Explore [1]");
-        btnInventory = new Button("Inventory [2]");
-        btnStatus = new Button("Status [3]");
+        btnSolvePuzzle = new Button("Solve Puzzle [1]");
+        btnExploreAction = new Button("Explore [2]");
+        btnInventory = new Button("Inventory [3]");
+        btnStatus = new Button("Status [4]");
+        btnSolvePuzzle.setPrefWidth(150);
         btnExploreAction.setPrefWidth(150);
         btnInventory.setPrefWidth(150);
         btnStatus.setPrefWidth(150);
-        btnExploreAction.setOnAction(e -> System.out.println("Explore action triggered."));
-        btnInventory.setOnAction(e -> System.out.println("Inventory opened."));
-        btnStatus.setOnAction(e -> System.out.println("Status panel opened."));
-        actionRow.getChildren().addAll(btnExploreAction, btnInventory, btnStatus);
+        btnSolvePuzzle.setOnAction(e -> attemptPuzzle());
+        btnExploreAction.setOnAction(e -> outputText("The area feels quiet. Try moving or solve a room puzzle."));
+        btnInventory.setOnAction(e -> outputText("Inventory is not yet implemented in the preview UI."));
+        btnStatus.setOnAction(e -> outputText("Status details are available when effects are active."));
+        actionRow.getChildren().addAll(btnSolvePuzzle, btnExploreAction, btnInventory, btnStatus);
 
         box.getChildren().addAll(compass, actionRow);
         return box;
@@ -534,52 +781,204 @@ public class GameGUI extends Application {
     }
 
     private VBox createPuzzleTextPanel() {
-        VBox box = new VBox(12);
-        box.setAlignment(Pos.CENTER);
+        VBox box = new VBox(14);
+        box.setAlignment(Pos.TOP_CENTER);
         box.setPadding(new Insets(18));
 
-        TextField inputField = new TextField();
-        inputField.setPromptText("Type your answer here...");
-        inputField.setPrefWidth(420);
+        lblPuzzleNarrative = createSectionLabel(
+                "Puzzle narrative appears here. Use typed input or click a letter block.");
+        lblPuzzleNarrative.setWrapText(true);
+        lblPuzzleNarrative.setPrefWidth(520);
+        lblPuzzleNarrative.setStyle("-fx-text-fill: #c7d2fe; -fx-font-style: italic;");
+
+        letterBlocksRow = new HBox(8);
+        letterBlocksRow.setAlignment(Pos.CENTER);
+        letterBlocksRow.setPadding(new Insets(4));
+        letterBlocksRow.setVisible(false);
+        letterBlocksRow.setManaged(false);
+        for (String letter : new String[] { "S", "K", "O", "O", "P", "Y" }) {
+            Button letterButton = new Button(letter);
+            letterButton.setPrefSize(46, 46);
+            letterButton.setFont(Font.font("Georgia", FontWeight.BOLD, 18));
+            letterButton.setStyle(
+                    "-fx-background-color: #374151; -fx-text-fill: #f8fafc; -fx-border-color: #6d28d9; -fx-border-radius: 8; -fx-background-radius: 8;");
+            letterButton.setOnAction(e -> {
+                if (!letterButton.isDisabled()) {
+                    puzzleInputField.appendText(letterButton.getText());
+                    letterButton.setDisable(true);
+                    letterButton.setOpacity(0.45);
+                }
+            });
+            letterBlocksRow.getChildren().add(letterButton);
+        }
+
+        numberGuessRow = new HBox(10);
+        numberGuessRow.setAlignment(Pos.CENTER);
+        numberGuessRow.setPadding(new Insets(4));
+        numberGuessRow.setVisible(false);
+        numberGuessRow.setManaged(false);
+        for (int i = 1; i <= 5; i++) {
+            Button numberButton = new Button(String.valueOf(i));
+            numberButton.setPrefSize(50, 50);
+            numberButton.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+            numberButton.setStyle(
+                    "-fx-background-color: #7f1d1d; -fx-text-fill: #fee2e2; -fx-border-color: #fca5a5; -fx-border-radius: 8; -fx-background-radius: 8;");
+            numberButton.setOnAction(e -> {
+                puzzleInputField.setText(numberButton.getText());
+                submitPuzzleAnswer(numberButton.getText());
+            });
+            numberGuessRow.getChildren().add(numberButton);
+        }
+
+        rpsButtonRow = new HBox(10);
+        rpsButtonRow.setAlignment(Pos.CENTER);
+        rpsButtonRow.setPadding(new Insets(4));
+        rpsButtonRow.setVisible(false);
+        rpsButtonRow.setManaged(false);
+        for (String label : new String[] { "🪨 Rock", "📄 Paper", "✂ Scissors" }) {
+            Button optionButton = new Button(label);
+            optionButton.setPrefWidth(130);
+            optionButton.setStyle(
+                    "-fx-background-color: #111827; -fx-text-fill: #fef3c7; -fx-border-color: #f59e0b; -fx-border-width: 1; -fx-border-radius: 10; -fx-background-radius: 10;");
+            optionButton.setOnAction(e -> submitPuzzleAnswer(optionButton.getText().split(" ")[1]));
+            rpsButtonRow.getChildren().add(optionButton);
+        }
+
+        puzzleInputField = new TextField();
+        puzzleInputField.setPromptText("Type or click letters to arrange the answer...");
+        puzzleInputField.setPrefWidth(520);
+        puzzleInputField.setVisible(false);
+        puzzleInputField.setManaged(false);
+        puzzleInputField.setStyle(
+                "-fx-background-color: #111827; -fx-text-fill: #f8fafc; -fx-border-color: #374151; -fx-border-radius: 8; -fx-background-radius: 8;");
 
         btnHint = new Button("Hint [1]");
-        btnExplorePuzzleText = new Button("Explore [2]");
+        btnExplorePuzzleText = new Button("Cancel [2]");
         btnSubmit = new Button("Submit [Enter]");
-        btnSubmit.setPrefWidth(140);
+        btnSubmit.setPrefWidth(160);
+        btnSubmit.setVisible(false);
+        btnSubmit.setManaged(false);
+        btnHint.setPrefWidth(120);
+        btnExplorePuzzleText.setPrefWidth(120);
 
-        HBox row = new HBox(10, btnHint, btnExplorePuzzleText, btnSubmit);
-        row.setAlignment(Pos.CENTER);
+        HBox actionRow = new HBox(12, btnHint, btnExplorePuzzleText, btnSubmit);
+        actionRow.setAlignment(Pos.CENTER);
 
-        btnSubmit.setOnAction(e -> System.out.println("Puzzle answer submitted."));
-        btnHint.setOnAction(e -> System.out.println("Puzzle hint requested."));
-        btnExplorePuzzleText.setOnAction(e -> System.out.println("Puzzle explore selected."));
+        puzzleResultLabel = createSectionLabel("Result will appear here.");
+        puzzleResultLabel.setFont(Font.font(UI_FONT, FontWeight.BOLD, 14));
+        puzzleResultLabel.setTextFill(Color.web("#fda4af"));
+        puzzleResultLabel.setVisible(false);
+        puzzleResultLabel.setManaged(false);
 
-        inputField.setOnAction(e -> btnSubmit.fire());
+        btnSubmit.setOnAction(e -> submitPuzzleAnswer(puzzleInputField.getText()));
+        btnHint.setOnAction(e -> {
+            if (activePuzzle != null) {
+                String hintText = activePuzzle.getHint();
+                System.out.println("Hint: " + hintText);
+                displayPuzzleResult("Hint: " + hintText);
+            } else {
+                System.out.println("No active puzzle to hint.");
+            }
+        });
+        btnExplorePuzzleText.setOnAction(e -> {
+            System.out.println("Puzzle cancelled.");
+            clearActivePuzzle();
+        });
 
-        box.getChildren().addAll(inputField, row);
+        puzzleInputField.setOnAction(e -> btnSubmit.fire());
+
+        box.getChildren().addAll(lblPuzzleNarrative, letterBlocksRow, numberGuessRow, rpsButtonRow, puzzleInputField,
+                actionRow, puzzleResultLabel);
         return box;
     }
 
     private VBox createPuzzleCardPanel() {
-        VBox box = new VBox(12);
-        box.setAlignment(Pos.CENTER);
+        VBox box = new VBox(16);
+        box.setAlignment(Pos.TOP_CENTER);
         box.setPadding(new Insets(18));
 
-        Label lblCardTotal = createSectionLabel("Total: 14");
-        lblCardTotal.setFont(Font.font(UI_FONT, FontWeight.BOLD, 18));
+        lblPuzzleCardTitle = createSectionLabel("Puzzle");
+        lblPuzzleCardTitle.setFont(Font.font(UI_FONT, FontWeight.BOLD, 18));
 
-        btnDraw = new Button("Draw [1]");
-        btnStand = new Button("Stand [2]");
-        btnExplorePuzzleCard = new Button("Explore [3]");
-        HBox row = new HBox(10, btnDraw, btnStand, btnExplorePuzzleCard);
-        row.setAlignment(Pos.CENTER);
+        cardGhostPanel = createCardPanel("GHOST", "?");
+        cardPlayerPanel = createCardPanel("YOU", "?");
 
-        btnDraw.setOnAction(e -> System.out.println("Card draw selected."));
-        btnStand.setOnAction(e -> System.out.println("Card stand selected."));
-        btnExplorePuzzleCard.setOnAction(e -> System.out.println("Card explore selected."));
+        cardRow = new HBox(24, cardGhostPanel, cardPlayerPanel);
+        cardRow.setAlignment(Pos.CENTER);
 
-        box.getChildren().addAll(lblCardTotal, row);
+        diceFaceLabel = createSectionLabel("Roll result appears here.");
+        diceFaceLabel.setTextFill(Color.web("#fef08a"));
+        diceFaceLabel.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+
+        selectionButtonsRow = new HBox(12);
+        selectionButtonsRow.setAlignment(Pos.CENTER);
+        selectionButtonsRow.setPadding(new Insets(6));
+        for (String option : new String[] { "IRON", "BRASS", "GOLD" }) {
+            Button choiceButton = new Button(option);
+            choiceButton.setPrefSize(120, 80);
+            choiceButton.setFont(Font.font(UI_FONT, FontWeight.BOLD, 14));
+            choiceButton.setStyle(
+                    "-fx-background-color: #111827; -fx-text-fill: #fde68a; -fx-border-color: #9d174d; -fx-border-width: 2; -fx-border-radius: 12; -fx-background-radius: 12;");
+            choiceButton.setOnAction(e -> submitPuzzleAnswer(option));
+            selectionButtonsRow.getChildren().add(choiceButton);
+        }
+
+        btnDraw = new Button("Draw Card [1]");
+        btnStand = new Button("Roll Dice [2]");
+        btnExplorePuzzleCard = new Button("Cancel [3]");
+        btnDraw.setPrefWidth(130);
+        btnStand.setPrefWidth(130);
+        btnExplorePuzzleCard.setPrefWidth(130);
+
+        HBox actionRow = new HBox(12, btnDraw, btnStand, btnExplorePuzzleCard);
+        actionRow.setAlignment(Pos.CENTER);
+
+        cardRow.setVisible(false);
+        cardRow.setManaged(false);
+        diceFaceLabel.setVisible(false);
+        diceFaceLabel.setManaged(false);
+        btnDraw.setVisible(false);
+        btnDraw.setManaged(false);
+        btnStand.setVisible(false);
+        btnStand.setManaged(false);
+        selectionButtonsRow.setVisible(false);
+        selectionButtonsRow.setManaged(false);
+
+        btnDraw.setOnAction(e -> submitPuzzleAnswer("draw"));
+        btnStand.setOnAction(e -> submitPuzzleAnswer("roll"));
+        btnExplorePuzzleCard.setOnAction(e -> {
+            System.out.println("Puzzle cancelled.");
+            clearActivePuzzle();
+        });
+
+        puzzleCardResultLabel = createSectionLabel("");
+        puzzleCardResultLabel.setFont(Font.font(UI_FONT, FontWeight.BOLD, 14));
+        puzzleCardResultLabel.setTextFill(Color.web("#fda4af"));
+        puzzleCardResultLabel.setVisible(false);
+        puzzleCardResultLabel.setManaged(false);
+
+        box.getChildren().addAll(lblPuzzleCardTitle, cardRow, diceFaceLabel, actionRow, selectionButtonsRow,
+                puzzleCardResultLabel);
         return box;
+    }
+
+    private VBox createCardPanel(String title, String value) {
+        VBox panel = new VBox(6);
+        panel.setAlignment(Pos.CENTER);
+        panel.setPadding(new Insets(10));
+        panel.setStyle(
+                "-fx-background-color: #111827; -fx-border-color: #4b5563; -fx-border-width: 2; -fx-border-radius: 16; -fx-background-radius: 16;");
+
+        Label lblTitle = new Label(title);
+        lblTitle.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+        lblTitle.setTextFill(Color.web(UI_TEXT_COLOR));
+
+        Label lblValue = new Label(value);
+        lblValue.setFont(Font.font("Consolas", FontWeight.BOLD, 40));
+        lblValue.setTextFill(Color.web("#ffffff"));
+
+        panel.getChildren().addAll(lblTitle, lblValue);
+        return panel;
     }
 
     private VBox createGameOverPanel() {
@@ -608,6 +1007,311 @@ public class GameGUI extends Application {
         label.setTextFill(Color.web(UI_TEXT_COLOR));
         label.setFont(Font.font(UI_FONT, 13));
         return label;
+    }
+
+    private Button createPuzzleTestButton(String label, String puzzleId, GameState state, PuzzleUIType puzzleType) {
+        Button button = new Button(label);
+        button.setPrefWidth(240);
+        button.setOnAction(e -> {
+            System.out.println("Test start puzzle " + label);
+            PuzzleLoader.PuzzleDefinition definition = puzzleDefinitions.get(puzzleId);
+            if (definition == null) {
+                System.out.println("Puzzle definition not found: " + puzzleId);
+                return;
+            }
+            activePuzzle = PuzzleLoader.createPuzzle(definition);
+            setActivePuzzleType(puzzleType);
+            setGameState(state);
+            startPuzzleUI(activePuzzle);
+        });
+        return button;
+    }
+
+    private void startPuzzleUI(Puzzle puzzle) {
+        if (puzzle == null) {
+            return;
+        }
+
+        puzzleResultLabel.setText("");
+        puzzleResultLabel.setVisible(false);
+        puzzleResultLabel.setManaged(false);
+        puzzleCardResultLabel.setText("");
+        puzzleCardResultLabel.setVisible(false);
+        puzzleCardResultLabel.setManaged(false);
+
+        puzzleInputField.clear();
+        resetScrambleLetters();
+        if (activePuzzleType == PuzzleUIType.POKER || activePuzzleType == PuzzleUIType.DICE) {
+            diceFaceLabel.setText(puzzle.start());
+            lblPuzzleNarrative.setText(puzzle.getNarrative());
+        } else if (activePuzzleType == PuzzleUIType.SELECTION) {
+            lblPuzzleNarrative.setText(puzzle.getNarrative());
+        } else {
+            lblPuzzleNarrative.setText(puzzle.getNarrative() + "\n\n" + puzzle.start());
+        }
+
+        System.out.println("Puzzle started: " + puzzle.getName());
+        if (puzzle.hasHint()) {
+            System.out.println("Hint available: type hint or press the hint button.");
+        }
+    }
+
+    private void updatePlayerInfo() {
+        if (player == null) {
+            return;
+        }
+        lblPlayerName.setText("Playing as: " + player.getName());
+        pbPlayerHP.setProgress(player.getCurrentHP() / (double) Math.max(1, player.getMaxHP()));
+        lblHPValues.setText(player.getCurrentHP() + " / " + player.getMaxHP());
+        lblATK.setText("ATK: " + player.getAttackValue());
+        lblDEF.setText("DEF: " + player.getDefenseValue());
+        lblBag.setText("Bag: " + player.getInventorySlots() + " / 7");
+        lblEquippedWeapon.setText(
+                "Weapon: " + (player.getEquippedWeapon() != null ? player.getEquippedWeapon().getName() : "None"));
+        lblEquippedArmor.setText(
+                "Armor: " + (player.getEquippedArmor() != null ? player.getEquippedArmor().getName() : "None"));
+    }
+
+    private void updateRoomInfo() {
+        Room room = game.getRoomByNumber(selectedRoomNumber);
+        if (room == null) {
+            return;
+        }
+        lblRoomName.setText(room.getName());
+        lblRoomID.setText(room.getRoomId() + " · " + room.getName());
+        lblExits.setText("Exits: " + buildExitString(room));
+        lblRoomDescription.setText(room.getRoomDescription());
+    }
+
+    private String buildExitString(Room room) {
+        StringBuilder exits = new StringBuilder();
+        if (room.getExit(0) > 0) {
+            exits.append("N ");
+        }
+        if (room.getExit(1) > 0) {
+            exits.append("E ");
+        }
+        if (room.getExit(2) > 0) {
+            exits.append("S ");
+        }
+        if (room.getExit(3) > 0) {
+            exits.append("W ");
+        }
+        return exits.length() == 0 ? "None" : exits.toString().trim();
+    }
+
+    private void outputText(String text) {
+        if (outputArea != null) {
+            outputArea.appendText("\n" + text);
+        }
+    }
+
+    private void movePlayer(String direction) {
+        if (player == null || game == null) {
+            return;
+        }
+        Room currentRoom = game.getRoomByNumber(player.getLocation());
+        if (currentRoom == null) {
+            outputText("No current room is loaded.");
+            return;
+        }
+        int directionIndex = switch (direction) {
+            case "N" -> 0;
+            case "E" -> 1;
+            case "S" -> 2;
+            case "W" -> 3;
+            default -> -1;
+        };
+        if (directionIndex < 0) {
+            return;
+        }
+
+        int destination = currentRoom.getExit(directionIndex);
+        System.out.println("DEBUG movePlayer from " + currentRoom.getRoomId() + " (" + player.getLocation()
+                + ") direction " + direction + " -> " + destination);
+        if (destination > 0) {
+            player.setLocation(destination);
+            Room nextRoom = game.getRoomByNumber(destination);
+            if (nextRoom != null) {
+                nextRoom.setVisited();
+                selectedRoomNumber = destination;
+                outputText("Moved to " + nextRoom.getRoomId() + " — " + nextRoom.getName() + ".");
+            }
+            updatePlayerInfo();
+            updateRoomInfo();
+            updateMapGrid();
+        } else {
+            outputText("There is no exit in that direction.");
+        }
+    }
+
+    private void attemptPuzzle() {
+        if (player == null || game == null) {
+            return;
+        }
+        Room currentRoom = game.getRoomByNumber(player.getLocation());
+        if (currentRoom == null) {
+            outputText("Player is not in a valid room.");
+            return;
+        }
+        if (!currentRoom.hasPuzzle()) {
+            outputText("There is no puzzle to solve in this room.");
+            return;
+        }
+        activePuzzle = currentRoom.getPuzzle();
+        if (activePuzzle == null) {
+            outputText("Room has no active puzzle.");
+            return;
+        }
+        activePuzzleType = determinePuzzleUIType(activePuzzle);
+        setActivePuzzleType(activePuzzleType);
+        if (activePuzzleType == PuzzleUIType.POKER || activePuzzleType == PuzzleUIType.DICE
+                || activePuzzleType == PuzzleUIType.SELECTION) {
+            setGameState(GameState.PUZZLE_CARD);
+        } else {
+            setGameState(GameState.PUZZLE_TEXT);
+        }
+        startPuzzleUI(activePuzzle);
+    }
+
+    private PuzzleUIType determinePuzzleUIType(Puzzle puzzle) {
+        String type = puzzle.getClass().getSimpleName().toUpperCase();
+        if (type.contains("SCRAMBLE")) {
+            return PuzzleUIType.SCRAMBLE;
+        }
+        if (type.contains("NUMBER")) {
+            return PuzzleUIType.NUMBER_GUESS;
+        }
+        if (type.contains("RPS")) {
+            return PuzzleUIType.RPS;
+        }
+        if (type.contains("POKER")) {
+            return PuzzleUIType.POKER;
+        }
+        if (type.contains("DICE")) {
+            return PuzzleUIType.DICE;
+        }
+        if (type.contains("RIDDLE")) {
+            return PuzzleUIType.RIDDLE;
+        }
+        if (type.contains("SELECTION")) {
+            return PuzzleUIType.SELECTION;
+        }
+        return PuzzleUIType.NONE;
+    }
+
+    private void loadPuzzleDefinitions() {
+        try {
+            puzzleDefinitions = PuzzleLoader.loadPuzzleDefinitions("data/puzzles.csv");
+            if (puzzleDefinitions.isEmpty()) {
+                System.out.println("No puzzle definitions loaded from data/puzzles.csv.");
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to load puzzle definitions: " + e.getMessage());
+            puzzleDefinitions.clear();
+        }
+    }
+
+    private void submitPuzzleAnswer(String answer) {
+        if (activePuzzle == null) {
+            System.out.println("No active puzzle to answer.");
+            return;
+        }
+
+        Puzzle.PuzzleResult result = activePuzzle.checkSolution(answer);
+        switch (result) {
+            case CORRECT -> {
+                String message = activePuzzle.getSuccessMessage();
+                System.out.println("Puzzle solved: " + message);
+                displayPuzzleResult(message);
+                clearActivePuzzle();
+            }
+            case WRONG_RETRY -> {
+                String message = activePuzzle.getFailureMessage() + " Attempts left: " + activePuzzle.getAttemptsLeft();
+                System.out.println("Puzzle wrong: " + message);
+                displayPuzzleResult(message);
+            }
+            case WRONG_FINAL -> {
+                String message = activePuzzle.getFailureMessage() + " The puzzle has failed.";
+                System.out.println(message);
+                displayPuzzleResult(message);
+                clearActivePuzzle();
+            }
+            case INVALID_INPUT -> {
+                String message = "Invalid puzzle input. Try a different action or value.";
+                System.out.println(message);
+                displayPuzzleResult(message);
+            }
+        }
+    }
+
+    private void displayPuzzleResult(String message) {
+        if (activePuzzleType == PuzzleUIType.POKER || activePuzzleType == PuzzleUIType.DICE
+                || activePuzzleType == PuzzleUIType.SELECTION) {
+            puzzleCardResultLabel.setText(message);
+            puzzleCardResultLabel.setVisible(true);
+            puzzleCardResultLabel.setManaged(true);
+        } else {
+            puzzleResultLabel.setText(message);
+            puzzleResultLabel.setVisible(true);
+            puzzleResultLabel.setManaged(true);
+        }
+    }
+
+    private void clearActivePuzzle() {
+        activePuzzle = null;
+        puzzleInputField.clear();
+        resetScrambleLetters();
+        puzzleResultLabel.setText("");
+        puzzleResultLabel.setVisible(false);
+        puzzleResultLabel.setManaged(false);
+        puzzleCardResultLabel.setText("");
+        puzzleCardResultLabel.setVisible(false);
+        puzzleCardResultLabel.setManaged(false);
+        setGameState(GameState.EXPLORATION);
+        updateMapGrid();
+    }
+
+    private void setActivePuzzleType(PuzzleUIType type) {
+        activePuzzleType = type;
+
+        letterBlocksRow.setVisible(type == PuzzleUIType.SCRAMBLE);
+        letterBlocksRow.setManaged(type == PuzzleUIType.SCRAMBLE);
+        numberGuessRow.setVisible(type == PuzzleUIType.NUMBER_GUESS);
+        numberGuessRow.setManaged(type == PuzzleUIType.NUMBER_GUESS);
+        rpsButtonRow.setVisible(type == PuzzleUIType.RPS);
+        rpsButtonRow.setManaged(type == PuzzleUIType.RPS);
+        selectionButtonsRow.setVisible(type == PuzzleUIType.SELECTION);
+        selectionButtonsRow.setManaged(type == PuzzleUIType.SELECTION);
+        puzzleInputField.setVisible(type == PuzzleUIType.SCRAMBLE || type == PuzzleUIType.RIDDLE);
+        puzzleInputField.setManaged(type == PuzzleUIType.SCRAMBLE || type == PuzzleUIType.RIDDLE);
+        btnSubmit.setVisible(type == PuzzleUIType.SCRAMBLE || type == PuzzleUIType.RIDDLE);
+        btnSubmit.setManaged(type == PuzzleUIType.SCRAMBLE || type == PuzzleUIType.RIDDLE);
+        puzzleResultLabel.setVisible(false);
+        puzzleResultLabel.setManaged(false);
+
+        cardRow.setVisible(type == PuzzleUIType.POKER);
+        cardRow.setManaged(type == PuzzleUIType.POKER);
+        cardGhostPanel.setVisible(type == PuzzleUIType.POKER);
+        cardGhostPanel.setManaged(type == PuzzleUIType.POKER);
+        cardPlayerPanel.setVisible(type == PuzzleUIType.POKER);
+        cardPlayerPanel.setManaged(type == PuzzleUIType.POKER);
+        diceFaceLabel
+                .setVisible(type == PuzzleUIType.DICE || type == PuzzleUIType.POKER || type == PuzzleUIType.SELECTION);
+        diceFaceLabel
+                .setManaged(type == PuzzleUIType.DICE || type == PuzzleUIType.POKER || type == PuzzleUIType.SELECTION);
+        btnDraw.setVisible(type == PuzzleUIType.POKER);
+        btnDraw.setManaged(type == PuzzleUIType.POKER);
+        btnStand.setVisible(type == PuzzleUIType.DICE);
+        btnStand.setManaged(type == PuzzleUIType.DICE);
+
+        if (type == PuzzleUIType.POKER) {
+            diceFaceLabel.setText("Draw a card to compare against the ghost.");
+        } else if (type == PuzzleUIType.DICE) {
+            diceFaceLabel.setText("Roll the die. You need the highest value: 6.");
+        } else {
+            diceFaceLabel.setText("Roll result appears here.");
+        }
     }
 
     private String getStatusEffectDescription(String effect) {

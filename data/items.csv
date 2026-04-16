@@ -1,0 +1,17 @@
+ItemID,Name,Item Type,Rarity,Location,RoomID,Benefits,Weaknesses,PickedUp
+I01,Rusting Armor,Armor,Common,Graveyard,GY-01,+10 DEF,None,false
+I02,Police Armor,Armor,Rare,Mayor,TH-02,+25 DEF,None,false
+I03,Military Armor,Armor,Legendary,Office,GS-03,+45 DEF,None,false
+I04,Health Potion,Consumable,Common,Bell Tower,CH-03,+25 HP,None,false
+I05,Health Potion,Consumable,Common,Guard Post,GH-02,+25 HP,None,false
+I06,Jack Daniel’s,Consumable,Rare,Bar,SL-01,+50 DEF for one turn,-10 HP,false
+I07,Hearty Meal,Consumable,Epic,Kitchen,SL-02,+50 HP,None,false
+I08,Health Potion,Consumable,Common,Meeting,TH-01,+25 HP,None,false
+I09,Prison Key,Key Item,Mythical,Church Path,RD-03,Unlocks Guard Tower,None,false
+I10,Poker Chips,Key Item,Mythical,Cells,GH-03,Gambling Puzzle,None,false
+I11,Office Keys,Key Item,Mythical,Records,TH-03,Office Key,None,false
+I12,Crude Dagger,Melee Weapon,Uncommon,Confessional,CH-04,+5 ATK DMG,None,false
+I13,Steel Sword,Melee Weapon,Rare,Cellar,SL-04,+20 ATK DMG,None,false
+I14,Assassin's Dagger,Melee Weapon,Legendary,Living,GS-04,+35 ATK DMG; Causes Monster’s Next Attack to Miss,Endgame Weapon,false
+I15,Crossbow,Ranged Weapon,Epic,Armory,GH-04,+15 DMG,10% Miss Chance,false
+I16,‘Old Reliable’ Shotgun,Ranged Weapon,Legendary,Storage,GS-02,+35 DMG,5% Miss Chance,false
