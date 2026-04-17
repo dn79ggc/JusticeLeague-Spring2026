@@ -1,0 +1,41 @@
+# Haunted Town - Monsters.txt
+# Format (13 columns, comma-separated):
+# col  1 - monsterClass     : Java subclass name to instantiate
+# col  2 - name             : display name shown to player
+# col  3 - level            : integer level (1-4)
+# col  4 - maxHp            : level * 25 (pre-calculated)
+# col  5 - speed            : 1=slow  2=balanced  3=fast
+# col  6 - roomId           : SRS room ID where this monster lives
+# col  7 - resistType       : MELEE | RANGED | NONE
+# col  8 - resistModifier   : negative double  e.g. -0.25 = takes 25% less damage of that type
+# col  9 - weakType         : MELEE | RANGED | NONE
+# col 10 - weakModifier     : positive double  e.g. +0.25 = takes 25% more damage of that type
+# col 11 - description      : flavour text for journal and size-up display (no commas)
+# col 12 - abilities        : pipe-separated list. Each ability: name:damagePercent:hitChance:statusEffect:effectChance
+#                             damagePercent is fraction of player maxHp (0.20 = 20%)
+#                             statusEffect = STUNNED | DISEASED | TERRORIZED | SHACKLED | NONE
+#                             effectChance = probability 0.0-1.0 that status applies on hit (0.0 if NONE)
+# col 13 - specialFlags     : semicolon-separated key=value pairs for mechanics that need extra data
+#                             NONE if no special flags needed
+#
+# NOTE - Shotgun ability: damagePercent stores the minimum (0.05). SHOTGUN_MAX in specialFlags stores the ceiling (0.30).
+#        Code generates a random value between min and max each time Shotgun fires.
+# NOTE - Barricade ability: damagePercent=0.00 hitChance=1.00. Always fires. Ends combat (player wins).
+#        Code reads HAS_BARRICADE=true flag to trigger door-blocking logic after combat ends.
+# NOTE - Evade ability: damagePercent=0.00. Code reads EVADE_PLAYER_HIT_PENALTY to apply -15% to player next hit.
+# NOTE - Fortify ability: damagePercent=0.00. Code reads FORTIFY_MELEE_HALF_CHANCE to apply 40% half-damage chance.
+# NOTE - Darken ability: damagePercent=0.00 hitChance=0.40 (activation roll). Code reads DARKEN_MULTIPLIER=1.5.
+# NOTE - Flee ability (Freak): hitChance=0.00 at base. Code reads FLEE_HP_THRESHOLD and FLEE_CHANCE_WHEN_LOW.
+# NOTE - Shadow NIGHT_DOUBLE_HIT passive: code reads flag and doubles all hitChance values if isNight==true.
+# NOTE - "Small Processor-1" in SRS Bell Tower room table is a typo for "Small Possessor-1" --
+#        no monster class called Processor exists in the SRS monster table.
+#        Two SmallPossessor instances (GY-01 and CH-03) is intentional per SRS room assignments.
+#
+Banshee,The Banshee,2,50,2,GH-03,MELEE,-0.25,RANGED,0.25,A wailing spirit that attacks through devastating sound. It resists physical blows but crumbles under ranged fire.,Scream:0.20:0.90:NONE:0.00|Blast:0.15:0.85:STUNNED:0.40|Terror:0.00:0.75:TERRORIZED:1.00,NONE
+SmallPossessor,The Possessor,1,25,3,GY-01,RANGED,-0.15,MELEE,0.30,A fast rodent-formed spirit that skitters and bites. Hard to hit with ranged attacks but vulnerable to melee.,Nibble:0.15:0.85:DISEASED:0.15|Evade:0.00:1.00:NONE:0.00,EVADE_PLAYER_HIT_PENALTY=0.15
+SmallPossessor,The Possessor,1,25,3,CH-03,RANGED,-0.15,MELEE,0.30,A fast rodent-formed spirit that skitters and bites. Hard to hit with ranged attacks but vulnerable to melee.,Nibble:0.15:0.85:DISEASED:0.15|Evade:0.00:1.00:NONE:0.00,EVADE_PLAYER_HIT_PENALTY=0.15
+MediumPossessor,The Possessor,2,50,2,SL-01,MELEE,-0.20,RANGED,0.10,A well-rounded spirit that balances speed and power. Difficult to reach with melee but susceptible to ranged damage.,Lunge:0.20:0.80:STUNNED:0.15|Fortify:0.00:1.00:NONE:0.00,FORTIFY_MELEE_HALF_CHANCE=0.40;LUNGE_STUMBLE_BONUS=0.10
+Poltergeist,The Poltergeist,2,50,2,RD-01,NONE,0.00,NONE,0.00,A ghost that hurls objects with violent force. Has no particular weakness to weapon type but can barricade a door on retreat.,Launch:0.20:0.80:STUNNED:0.40|HurlPlayer:0.35:0.60:NONE:0.00|Shotgun:0.05:0.85:NONE:0.00|Barricade:0.00:1.00:NONE:0.00,SHOTGUN_MAX=0.30;HAS_BARRICADE=true
+LargePossessor,The Possessor,3,75,1,TH-03,RANGED,-0.35,MELEE,0.15,A slow hulking spirit that trades speed for devastating power. Ranged weapons barely scratch it but melee and ranged accuracy both cut through its defences.,Boulder:0.40:0.45:STUNNED:1.00|Swipe:0.20:0.50:NONE:0.00,LARGE_RANGED_HIT_BONUS=0.40
+Shadow,The Shadow,3,75,2,GS-01,NONE,0.00,NONE,0.00,A darkness-formed ghost that grows stronger at night. Carrying a light source weakens its attacks. More accurate inside buildings.,ShadeStab:0.30:0.85:NONE:0.00|Darken:0.00:0.40:NONE:0.00|Shackle:0.00:0.45:SHACKLED:1.00,NIGHT_DOUBLE_HIT=true;BUILDING_HIT_BONUS=0.15;LIGHT_SOURCE_DAMAGE_PENALTY=0.10;DARKEN_MULTIPLIER=1.5
+Freak,The Freak,4,100,1,GS-04,NONE,0.00,NONE,0.00,An unsettling anomaly that does not behave like any known ghost. It can summon allies and fights dirty until it decides to run.,Boil:0.70:0.95:NONE:0.00|Summon:0.00:0.60:NONE:0.00|Tackle:0.20:0.70:NONE:0.00|Flee:0.00:0.00:NONE:0.00,BOIL_NEGATED_DAMAGE=0.10;SUMMON_TURNS_TO_CAST=3;SUMMON_HEAL_PERCENT=0.15;SUMMON_MAX_TURNS=20;FLEE_HP_THRESHOLD=0.10;FLEE_CHANCE_WHEN_LOW=0.80
