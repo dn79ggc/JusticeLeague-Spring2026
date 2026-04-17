@@ -1,0 +1,6 @@
+WeaponID,ItemID,Name,weaponType,attackBonus,missChance,specialEffect,equipped
+W1,I12,Crude Dagger,Melee,5,0,NONE,false
+W2,I13,Steel Sword,Melee,20,0,NONE,false
+W3,I14,Assassin's Dagger,Melee,35,0,NEXT_ATTACK_MISS,false
+W4,I15,Crossbow,Ranged,15,10,NONE,false
+W5,I16,'Old Reliable' Shotgun,Ranged,35,5,NONE,false

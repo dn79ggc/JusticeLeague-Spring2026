@@ -1,0 +1,6 @@
+ConsumableID,ItemID,Name,healAmount,tempDefBonus,tempDefTurns,hpPenalty,used
+C1,I04,Health Potion,25,0,0,0,false
+C2,I05,Health Potion,25,0,0,0,false
+C3,I06,Jack Daniel's,0,50,1,10,false
+C4,I07,Hearty Meal,50,0,0,0,false
+C5,I08,Health Potion,25,0,0,0,false

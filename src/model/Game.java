@@ -94,6 +94,10 @@ public class Game {
         return map.size();
     }
 
+    public List<Room> getAllRooms() {
+        return map;
+    }
+
     // Centralizes the (roomNumber - 1) index math so it never leaks into
     // Controller.
     public Room getRoomByNumber(int roomNumber) {

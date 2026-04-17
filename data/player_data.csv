@@ -1,2 +1,2 @@
-Name,CurrentRoomID,CurrentHP,MaxHP,BaseAttack,BaseDefense
-Explorer,GH-01,100,100,10,5
+Name,CurrentRoomID,CurrentHP,MaxHP,BaseAttack,BaseDefense,CurrentAttack,CurrentDefense
+Explorer,CH-01,100,100,10,5,10,5

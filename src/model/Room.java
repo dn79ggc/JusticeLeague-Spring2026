@@ -7,6 +7,7 @@ public class Room {
     private String name;
     private String roomDescription;
     private boolean visited = false;
+    private String barricadedTo = null; // RoomID of barricaded exit, null if none
     private Map<String, Integer> exits;
     private List<Item> itemsInRoom;
     private Monster monster;
@@ -48,6 +49,18 @@ public class Room {
 
     public void setVisited() {
         this.visited = true;
+    }
+
+    public String getBarricadedTo() {
+        return barricadedTo;
+    }
+
+    public void setBarricadedTo(String roomId) {
+        this.barricadedTo = roomId;
+    }
+
+    public boolean isBarricaded() {
+        return barricadedTo != null && !barricadedTo.equals("NONE");
     }
 
     public Monster getMonster() {

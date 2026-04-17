@@ -311,6 +311,24 @@ public class Player {
         return maxHP;
     }
 
+    public int getBaseAttack() {
+        return baseAttack;
+    }
+
+    public int getBaseDefense() {
+        return baseDefense;
+    }
+
+    public List<String> getVisitedRooms() {
+        return visitedRooms;
+    }
+
+    public void addVisitedRoom(String roomId) {
+        if (roomId != null && !visitedRooms.contains(roomId)) {
+            visitedRooms.add(roomId);
+        }
+    }
+
     public Weapon getEquippedWeapon() {
         return equippedWeapon;
     }

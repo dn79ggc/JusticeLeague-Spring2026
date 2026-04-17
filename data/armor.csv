@@ -1,0 +1,4 @@
+ArmorID,ItemID,Name,defenseBonus,equipped
+A1,I01,Rusting Armor,10,false
+A2,I02,Police Armor,25,false
+A3,I03,Military Armor,45,false

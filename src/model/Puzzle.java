@@ -72,6 +72,14 @@ public abstract class Puzzle {
         return solved;
     }
 
+    /**
+     * Mark this puzzle as solved without going through the normal attempt flow
+     * (used by load).
+     */
+    public void markSolved() {
+        this.solved = true;
+    }
+
     public boolean hasHint() {
         return hint != null && !hint.isBlank();
     }

@@ -29,6 +29,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +39,7 @@ import model.Player;
 import model.Room;
 import model.Puzzle;
 import model.PuzzleLoader;
+import model.SaveManager;
 
 public class GameGUI extends Application {
 
@@ -421,14 +423,14 @@ public class GameGUI extends Application {
                 String textColor = isCurrent ? "white" : "#9ca3af";
                 String displayText = isCurrent ? "You" : room.getRoomId();
 
-                String topBorder = room.getExit(0) > 0 ? "transparent" : "#000000";
-                String rightBorder = room.getExit(1) > 0 ? "transparent" : "#000000";
-                String bottomBorder = room.getExit(2) > 0 ? "transparent" : "#000000";
-                String leftBorder = room.getExit(3) > 0 ? "transparent" : "#000000";
-                String topWidth = room.getExit(0) > 0 ? "1" : "3";
-                String rightWidth = room.getExit(1) > 0 ? "1" : "3";
-                String bottomWidth = room.getExit(2) > 0 ? "1" : "3";
-                String leftWidth = room.getExit(3) > 0 ? "1" : "3";
+                String topBorder = borderColor(room, 0);
+                String rightBorder = borderColor(room, 1);
+                String bottomBorder = borderColor(room, 2);
+                String leftBorder = borderColor(room, 3);
+                String topWidth = borderWidth(room, 0);
+                String rightWidth = borderWidth(room, 1);
+                String bottomWidth = borderWidth(room, 2);
+                String leftWidth = borderWidth(room, 3);
                 cell.setStyle(String.format(
                         "-fx-background-color: %s; -fx-border-color: %s %s %s %s; -fx-border-width: %s %s %s %s; -fx-border-radius: 8; -fx-background-radius: 8;",
                         backgroundColor, topBorder, rightBorder, bottomBorder, leftBorder,
@@ -447,6 +449,46 @@ public class GameGUI extends Application {
                 });
             }
         }
+    }
+
+    /** Returns the CSS border colour for one side of a room cell. */
+    private String borderColor(Room room, int dir) {
+        int neighborNum = room.getExit(dir);
+        if (neighborNum <= 0)
+            return "#000000"; // wall
+        if (game == null)
+            return "transparent";
+        Room neighbor = game.getRoomByNumber(neighborNum);
+        if (neighbor == null)
+            return "transparent";
+        // Barricade from this room toward neighbor
+        String bt = room.getBarricadedTo();
+        if (bt != null && bt.equals(neighbor.getRoomId()))
+            return "#8b5cf6";
+        // Barricade from neighbor toward this room
+        String nbt = neighbor.getBarricadedTo();
+        if (nbt != null && nbt.equals(room.getRoomId()))
+            return "#8b5cf6";
+        return "transparent"; // open passage
+    }
+
+    /** Returns the CSS border width for one side of a room cell. */
+    private String borderWidth(Room room, int dir) {
+        int neighborNum = room.getExit(dir);
+        if (neighborNum <= 0)
+            return "3"; // wall
+        if (game == null)
+            return "1";
+        Room neighbor = game.getRoomByNumber(neighborNum);
+        if (neighbor == null)
+            return "1";
+        String bt = room.getBarricadedTo();
+        if (bt != null && bt.equals(neighbor.getRoomId()))
+            return "3";
+        String nbt = neighbor.getBarricadedTo();
+        if (nbt != null && nbt.equals(room.getRoomId()))
+            return "3";
+        return "1";
     }
 
     private int getRoomNumberAtPosition(int row, int col) {
@@ -624,7 +666,7 @@ public class GameGUI extends Application {
         btnQuitMenu = new Button("Quit [Q]");
         btnQuitMenu.setPrefWidth(Double.MAX_VALUE);
 
-        btnSaveMenu.setOnAction(e -> System.out.println("Save action triggered."));
+        btnSaveMenu.setOnAction(e -> showSaveDialog());
         btnQuitMenu.setOnAction(e -> {
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                     "Return to the main menu? Use Quit on the main menu to exit the game.",
@@ -655,8 +697,8 @@ public class GameGUI extends Application {
         btnLoadGame.setPrefWidth(240);
         btnQuitMainMenu.setPrefWidth(240);
 
-        btnNewGame.setOnAction(e -> setGameState(GameState.EXPLORATION));
-        btnLoadGame.setOnAction(e -> setGameState(GameState.EXPLORATION));
+        btnNewGame.setOnAction(e -> resetGame());
+        btnLoadGame.setOnAction(e -> showLoadDialog());
         btnQuitMainMenu.setOnAction(e -> Platform.exit());
 
         Label lblTestHeader = createSectionLabel("Puzzle Test Launcher");
@@ -994,7 +1036,7 @@ public class GameGUI extends Application {
         btnRestartGameOver.setPrefWidth(180);
         btnQuitGameOver.setPrefWidth(180);
 
-        btnLoadGameOver.setOnAction(e -> System.out.println("Load from game over."));
+        btnLoadGameOver.setOnAction(e -> showLoadDialog());
         btnRestartGameOver.setOnAction(e -> setGameState(GameState.MAIN_MENU));
         btnQuitGameOver.setOnAction(e -> Platform.exit());
 
@@ -1367,6 +1409,125 @@ public class GameGUI extends Application {
                 saveQuitBox.setVisible(false);
             }
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Save / Load dialog helpers
+    // ------------------------------------------------------------------
+
+    /** Open a modal slot-selection dialog and save to the chosen slot. */
+    private void showSaveDialog() {
+        Stage dialog = buildSlotDialog("Save Game – Choose a Slot", true);
+        dialog.showAndWait();
+    }
+
+    /** Open a modal slot-selection dialog and load from the chosen slot. */
+    private void showLoadDialog() {
+        Stage dialog = buildSlotDialog("Load Game – Choose a Slot", false);
+        dialog.showAndWait();
+    }
+
+    /**
+     * Build a styled, modal slot-selection window.
+     *
+     * @param title  title bar text
+     * @param isSave true → save mode; false → load mode
+     */
+    private Stage buildSlotDialog(String title, boolean isSave) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle(title);
+        dialog.setResizable(false);
+
+        VBox root = new VBox(14);
+        root.setPadding(new Insets(20));
+        root.setAlignment(Pos.CENTER);
+        root.setStyle("-fx-background-color: #111827;");
+
+        Label header = new Label(title);
+        header.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+        header.setTextFill(Color.web(UI_TEXT_COLOR));
+
+        root.getChildren().add(header);
+
+        for (int slot = 1; slot <= SaveManager.NUM_SLOTS; slot++) {
+            final int s = slot;
+            String summary = SaveManager.getSlotSummary(slot);
+            Button btn = new Button(summary);
+            btn.setPrefWidth(400);
+            btn.setStyle("-fx-background-color: #1f2937; -fx-text-fill: #e5e7eb;"
+                    + " -fx-border-color: #374151; -fx-border-radius: 6; -fx-background-radius: 6;"
+                    + " -fx-font-size: 13px;");
+            btn.setOnAction(ev -> {
+                dialog.close();
+                if (isSave) {
+                    performSave(s);
+                } else {
+                    performLoad(s);
+                }
+            });
+            root.getChildren().add(btn);
+        }
+
+        Button btnCancel = new Button("Cancel");
+        btnCancel.setPrefWidth(400);
+        btnCancel.setStyle("-fx-background-color: #374151; -fx-text-fill: #9ca3af;"
+                + " -fx-border-color: #4b5563; -fx-border-radius: 6; -fx-background-radius: 6;"
+                + " -fx-font-size: 13px;");
+        btnCancel.setOnAction(ev -> dialog.close());
+        root.getChildren().add(btnCancel);
+
+        dialog.setScene(new Scene(root, 460, 240, Color.web("#111827")));
+        return dialog;
+    }
+
+    /** Save current game state to the given slot and show a brief confirmation. */
+    private void performSave(int slot) {
+        boolean ok = SaveManager.saveGame(slot, player, game);
+        String msg = ok
+                ? "Game saved to Slot " + slot + "."
+                : "Save failed for Slot " + slot + " – check console for details.";
+        outputText(msg);
+    }
+
+    /** Load game state from the given slot and refresh all UI panels. */
+    private void performLoad(int slot) {
+        Player loaded = SaveManager.loadGame(slot, game);
+        if (loaded == null) {
+            outputText("Load failed for Slot " + slot + " – check console for details.");
+            return;
+        }
+        player = loaded;
+        selectedRoomNumber = player.getLocation();
+        Room startRoom = game.getRoomByNumber(selectedRoomNumber);
+        if (startRoom != null)
+            startRoom.setVisited();
+        updatePlayerInfo();
+        updateRoomInfo();
+        updateMapGrid();
+        setGameState(GameState.EXPLORATION);
+        outputText("Slot " + slot + " loaded. Welcome back, " + player.getName() + "!");
+    }
+
+    /** Reset game to factory defaults (equivalent to New Game). */
+    private void resetGame() {
+        game = new Game();
+        if (!game.mapGenerate("rooms.csv")) {
+            System.out.println("Failed to load rooms.csv during reset.");
+        }
+        if (!game.loadPuzzles("puzzles.csv")) {
+            System.out.println("Failed to load puzzles.csv during reset.");
+        }
+        player = Player.loadFromCsv(
+                SaveManager.SAVES_DIR + SaveManager.BASE_SLOT + "/player.csv", game);
+        selectedRoomNumber = player.getLocation();
+        Room startRoom = game.getRoomByNumber(selectedRoomNumber);
+        if (startRoom != null)
+            startRoom.setVisited();
+        updatePlayerInfo();
+        updateRoomInfo();
+        updateMapGrid();
+        setGameState(GameState.EXPLORATION);
     }
 
     public static void main(String[] args) {
