@@ -78,6 +78,27 @@ public class Player {
         this.location = newLocation;
     }
 
+    public Room getPreviousRoom() {
+        return previousRoom;
+    }
+
+    public boolean move(Room nextRoom) {
+        if (nextRoom == null) {
+            return false;
+        }
+
+        previousRoom = currentRoom;
+        currentRoom = nextRoom;
+        totalMoves++;
+
+        if (!visitedRooms.contains(nextRoom.getRoomId())) {
+            visitedRooms.add(nextRoom.getRoomId());
+            roomsVisited++;
+        }
+
+        return true;
+    }
+
     public String getName() {
         return name;
     }
@@ -194,6 +215,15 @@ public class Player {
 
     public int getInventorySlots() {
         return inventory.size();
+    }
+
+    public Item getItemByName(String name) {
+        for (Item item : inventory) {
+            if (item.getName().equalsIgnoreCase(name)) {
+                return item;
+            }
+        }
+        return null;
     }
 
     // Equipment

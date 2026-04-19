@@ -1,5 +1,7 @@
 package view;
 
+import java.util.List;
+
 public class GameView {
 
     // Shown once after the map loads successfully
@@ -102,6 +104,49 @@ public class GameView {
 
     public void showGoodbye() {
         System.out.println("\nThank you for playing! Goodbye!");
+    }
+
+    public void showExploreResult(String description) {
+        System.out.println(description + "\n");
+    }
+
+    public void showInventory(List<String> items) {
+        for (String line : items) {
+            System.out.println(line);
+        }
+        System.out.println();
+    }
+
+    public void showInspectResult(String info) {
+        System.out.println(info + "\n");
+    }
+
+    public void showMessage(String message) {
+        System.out.println(message);
+    }
+
+    public void showEquipSuccess(String itemName) {
+        System.out.println(itemName + " equipped successfully.\n");
+    }
+
+    public void showUnequipSuccess(String slot) {
+        System.out.println("Unequipped " + slot + " successfully.\n");
+    }
+
+    public void showAttackResult(int damage) {
+        System.out.println("You attack and deal " + damage + " damage.\n");
+    }
+
+    public void showDefend() {
+        System.out.println("You brace yourself and prepare to defend.\n");
+    }
+
+    public void showFleeSuccess() {
+        System.out.println("You successfully flee from combat!\n");
+    }
+
+    public void showFleeFail() {
+        System.out.println("You failed to flee!\n");
     }
 
     // Shown when the map data file cannot be found
