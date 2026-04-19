@@ -1,10 +1,13 @@
 // GameController.java
 package controller;
 
+import model.Armor;
 import model.Game;
+import model.Item;
 import model.Player;
 import model.Puzzle;
 import model.Room;
+import model.Weapon;
 import view.GameView;
 
 import java.util.Scanner;
@@ -91,6 +94,150 @@ public class GameController {
             if (game.allRoomsVisited()) {
                 view.showVictory();
             }
+            return false;
+        }
+
+        // Handle other commands like "explore", "inventory", "inspect [item]", "drop
+        // [item]", "equip [item]", "unequip weapon", "unequip armor", "attack",
+        // "defend", "flee"
+        if (input.equalsIgnoreCase("explore")) {
+            String description = player.exploreRoom();
+            view.showExploreResult(description);
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("inventory")) {
+            view.showInventory(player.showInventory());
+            return false;
+        }
+
+        if (input.toLowerCase().startsWith("inspect ")) {
+            String itemName = input.substring(8).trim();
+            Item item = player.getItemByName(itemName);
+
+            if (item == null) {
+                view.showMessage("You do not have that item.\n");
+            } else {
+                view.showInspectResult(player.inspectItem(item));
+            }
+            return false;
+        }
+
+        if (input.toLowerCase().startsWith("drop ")) {
+            String itemName = input.substring(5).trim();
+            Item item = player.getItemByName(itemName);
+
+            if (item == null) {
+                view.showMessage("You do not have that item.\n");
+            } else if (player.dropItem(item)) {
+                view.showMessage(item.getName() + " dropped.\n");
+            } else {
+                view.showMessage("You cannot drop that item.\n");
+            }
+            return false;
+        }
+
+        if (input.toLowerCase().startsWith("equip ")) {
+            String itemName = input.substring(6).trim();
+            Item item = player.getItemByName(itemName);
+
+            if (item == null) {
+                view.showMessage("You do not have that item.\n");
+                return false;
+            }
+
+            if (item instanceof Weapon) {
+                player.equipWeapon((Weapon) item);
+                view.showEquipSuccess(item.getName());
+            } else if (item instanceof Armor) {
+                player.equipArmor((Armor) item);
+                view.showEquipSuccess(item.getName());
+            } else {
+                view.showMessage("That item cannot be equipped.\n");
+            }
+
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("unequip weapon")) {
+            if (player.unequipWeapon()) {
+                view.showUnequipSuccess("weapon");
+            } else {
+                view.showMessage("No weapon equipped or inventory full.\n");
+            }
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("unequip armor")) {
+            if (player.unequipArmor()) {
+                view.showUnequipSuccess("armor");
+            } else {
+                view.showMessage("No armor equipped or inventory full.\n");
+            }
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("attack")) {
+
+            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
+                view.showMessage("There is nothing to attack here.\n");
+                return false;
+            }
+
+            int damage = player.attack();
+            currentRoom.getMonster().takeDamage(damage);
+
+            view.showAttackResult(damage);
+
+            if (!currentRoom.getMonster().isAlive()) {
+                view.showMessage("You defeated the monster!\n");
+                currentRoom.removeMonster();
+                player.resetTurnFlags();
+                return false;
+            }
+
+            // Monster turn would go here later (CombatSystem)
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("defend")) {
+
+            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
+                view.showMessage("You are not in combat.\n");
+                return false;
+            }
+
+            player.defend();
+            view.showDefend();
+
+            // Monster turn would follow
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("flee")) {
+
+            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
+                view.showMessage("There is nothing to flee from.\n");
+                return false;
+            }
+
+            boolean success = player.flee();
+
+            if (success) {
+                view.showFleeSuccess();
+                currentRoom.getMonster().reset();
+                Room previous = player.getPreviousRoom();
+
+                if (previous != null) {
+                    player.move(previous);
+                    view.showMessage("You retreat to the previous room.\n");
+                }
+            } else {
+                view.showFleeFail();
+                // Monster turn would go here
+            }
+
+            player.resetTurnFlags();
             return false;
         }
 
