@@ -99,7 +99,7 @@ public class GameController {
 
         // Handle other commands like "explore", "inventory", "inspect [item]", "drop
         // [item]", "equip [item]", "unequip weapon", "unequip armor", "attack",
-        // "defend", "flee"
+        // "defend", "flee", "breach [direction]", "use [item]", etc.
         if (input.equalsIgnoreCase("explore")) {
             String description = player.exploreRoom();
             view.showExploreResult(description);
@@ -238,6 +238,56 @@ public class GameController {
             }
 
             player.resetTurnFlags();
+            return false;
+        }
+
+        if (input.toLowerCase().startsWith("breach ")) {
+            String direction = input.substring(7).trim().toLowerCase();
+
+            Room room = player.getCurrentRoom();
+
+            if (room == null) {
+                view.showMessage("You are nowhere. That should not happen.\n");
+                return false;
+            }
+
+            if (!room.isBarricaded(direction)) {
+                view.showMessage("There is no barricade in that direction.\n");
+                return false;
+            }
+
+            boolean success = player.breach(direction);
+
+            if (success) {
+                view.showMessage(
+                        "You force your way through the barricade, hurting yourself in the process.\n");
+                view.showPlayerDamage(player.getCurrentHP());
+            } else {
+                view.showMessage("You fail to breach the barricade.\n");
+            }
+
+            return false;
+        }
+
+        if (input.toLowerCase().startsWith("use ")) {
+            String itemName = input.substring(4).trim();
+
+            Item item = player.getItemByName(itemName);
+
+            if (item == null) {
+                view.showMessage("You do not have that item.\n");
+                return false;
+            }
+
+            boolean used = player.useItem(item);
+
+            if (used) {
+                view.showMessage(item.getName() + " used.\n");
+                view.showPlayerDamage(player.getCurrentHP());
+            } else {
+                view.showMessage("You cannot use that item right now.\n");
+            }
+
             return false;
         }
 

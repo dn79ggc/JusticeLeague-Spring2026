@@ -18,9 +18,10 @@
         "c:\\Users\\user\\Desktop\\JusticeLeague-Spring2026\\lib\\javafx-sdk-26\\lib\\javafx.media.jar"
     ],
     "java.configuration.runtimes": [
+
         {
             "name": "JavaSE-26",
-            "path": "${env:JAVA_HOME}",
+            "path": "C:\\Program Files\\Java\\jdk-26",
             "default": true
         }
     ]
