@@ -99,7 +99,7 @@ public class GameController {
 
         // Handle other commands like "explore", "inventory", "inspect [item]", "drop
         // [item]", "equip [item]", "unequip weapon", "unequip armor", "attack",
-        // "defend", "flee", "breach [direction]", "use [item]", etc.
+        // "defend", "flee", "breach [direction]", "use [item]", "inspect enemy" etc.
         if (input.equalsIgnoreCase("explore")) {
             String description = player.exploreRoom();
             view.showExploreResult(description);
@@ -287,6 +287,19 @@ public class GameController {
             } else {
                 view.showMessage("You cannot use that item right now.\n");
             }
+
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("inspect enemy")) {
+
+            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
+                view.showMessage("There is no enemy to inspect.\n");
+                return false;
+            }
+
+            String info = player.inspectEnemy(currentRoom.getMonster());
+            view.showInspectEnemy(info);
 
             return false;
         }
