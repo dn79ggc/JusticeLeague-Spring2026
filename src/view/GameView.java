@@ -149,6 +149,10 @@ public class GameView {
         System.out.println("You failed to flee!\n");
     }
 
+    public void showInspectEnemy(String info) {
+        System.out.println(info + "\n");
+    }
+
     // Shown when the map data file cannot be found
     public void showMapLoadError(String filename) {
         System.out.println("Error: data/" + filename + " not found. Check the data/ folder.");
