@@ -82,6 +82,10 @@ public class Player {
         return previousRoom;
     }
 
+    public Room getCurrentRoom() {
+        return currentRoom;
+    }
+
     public boolean move(Room nextRoom) {
         if (nextRoom == null) {
             return false;
@@ -265,7 +269,7 @@ public class Player {
 
     // Combat Helpers
     public int attack() {
-        return getAttackValue();
+        return getEffectiveATK();
     }
 
     public void defend() {
@@ -303,7 +307,7 @@ public class Player {
         return currentHP;
     }
 
-    public int getAttackValue() {
+    public int getEffectiveATK() {
         int attack = baseAttack;
         if (equippedWeapon != null) {
             attack += equippedWeapon.getDamage();
@@ -311,7 +315,7 @@ public class Player {
         return attack;
     }
 
-    public int getDefenseValue() {
+    public int getEffectiveDEF() {
         int defense = baseDefense;
         if (equippedArmor != null) {
             defense += equippedArmor.getDefense();
@@ -373,7 +377,20 @@ public class Player {
 
     // Puzzle Interaction
     public boolean solvePuzzle(String answer) {
-        return false;
+        if (currentRoom == null || !currentRoom.hasPuzzle()) {
+            return false;
+        }
+
+        Puzzle puzzle = currentRoom.getPuzzle();
+        Puzzle.PuzzleResult result = puzzle.checkSolution(answer);
+
+        if (result == Puzzle.PuzzleResult.CORRECT ||
+                result == Puzzle.PuzzleResult.WRONG_FINAL) {
+            currentRoom.removePuzzle();
+        }
+
+        return result == Puzzle.PuzzleResult.CORRECT;
+
     }
 
     public String getHint() {
@@ -395,14 +412,44 @@ public class Player {
     }
 
     public boolean useKeyItem(KeyItem keyItem) {
+        if (keyItem == null || !inventory.contains(keyItem)) {
+            return false;
+        }
+
+        if (currentRoom == null) {
+            return false;
+        }
+
+        String target = keyItem.getUnlockTarget();
+
+        // Case 1: Key unlocks a puzzle
+        if (currentRoom.hasPuzzle()) {
+            Puzzle puzzle = currentRoom.getPuzzle();
+
+            if (currentRoom.hasPuzzle()) {
+                currentRoom.removePuzzle();
+                inventory.remove(keyItem);
+                keyItem.consume();
+                return true;
+            }
+        }
+
+        // Case 2: Key unlocks a barricaded exit
+        if (currentRoom.isBarricaded()) {
+            currentRoom.setBarricadedTo("NONE");
+            inventory.remove(keyItem);
+            keyItem.consume();
+            return true;
+        }
+
         return false;
     }
 
     // Info for Save / UI
     public String getStatus() {
         return "HP: " + currentHP + "/" + maxHP +
-                " | ATK: " + getAttackValue() +
-                " | DEF: " + getDefenseValue();
+                " | ATK: " + getEffectiveATK() +
+                " | DEF: " + getEffectiveDEF();
     }
 
     // Command methods
@@ -466,4 +513,51 @@ public class Player {
 
         return result;
     }
+
+    public boolean useItem(Item item) {
+        if (item == null || !inventory.contains(item)) {
+            return false;
+        }
+
+        if (itemUsedThisTurn) {
+            return false;
+        }
+
+        item.use(this);
+        itemUsedThisTurn = true;
+
+        if (item instanceof Consumable || item instanceof KeyItem) {
+            inventory.remove(item);
+        }
+
+        return true;
+    }
+
+    public String inspectEnemy(Monster monster) {
+        if (monster == null || !monster.isAlive()) {
+            return "There is no enemy to inspect.";
+        }
+        return monster.getInfo();
+    }
+
+    public boolean breach(String direction) {
+        if (currentRoom == null) {
+            return false;
+        }
+
+        if (!currentRoom.isBarricaded()) {
+            return false;
+        }
+
+        int damage = (equippedWeapon != null && !equippedWeapon.isRanged())
+                ? 5
+                : 15;
+
+        takeDamage(damage);
+
+        // clear the barricade
+        currentRoom.setBarricadedTo("NONE");
+        return true;
+    }
+
 }
