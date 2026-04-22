@@ -74,3 +74,9 @@ tasks.register('runGui', JavaExec) {
     mainClass.set('view.GameGUI')
     jvmArgs = javafxJvmArgs
 }
+
+tasks.register('runGUI') {
+    group = 'application'
+    description = 'Alias for runGui'
+    dependsOn tasks.named('runGui')
+}

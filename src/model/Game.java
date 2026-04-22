@@ -51,11 +51,20 @@ public class Game {
             for (int i = 0; i < table.rowCount(); i++) {
                 Room room = map.get(i);
                 Row row = table.row(i);
-                java.util.Set<String> seenDestinations = new java.util.HashSet<>();
-                room.addExit("N", parseExit(row.getString("North")));
-                room.addExit("S", parseExit(row.getString("South")));
-                room.addExit("E", parseExit(row.getString("East")));
-                room.addExit("W", parseExit(row.getString("West")));
+                String north = parseExit(row.getString("North"));
+                String south = parseExit(row.getString("South"));
+                String east = parseExit(row.getString("East"));
+                String west = parseExit(row.getString("West"));
+
+                room.addExit("N", north);
+                room.addExit("S", south);
+                room.addExit("E", east);
+                room.addExit("W", west);
+
+                room.setExitNumber("N", north == null ? null : idToIndex.get(north));
+                room.setExitNumber("S", south == null ? null : idToIndex.get(south));
+                room.setExitNumber("E", east == null ? null : idToIndex.get(east));
+                room.setExitNumber("W", west == null ? null : idToIndex.get(west));
             }
 
             buildRoomCoordinates();
@@ -215,14 +224,25 @@ public class Game {
     }
 
     public Room getRoomById(String roomId) {
-        return rooms.get(roomId);
+        if (roomId == null) {
+            return null;
+        }
+        Room exact = rooms.get(roomId);
+        if (exact != null) {
+            return exact;
+        }
+        return rooms.get(roomId.trim().toUpperCase());
     }
 
     public int getRoomNumberById(String roomId) {
         if (roomId == null) {
             return 0;
         }
-        return idToRoomNumber.getOrDefault(roomId, 0);
+        Integer exact = idToRoomNumber.get(roomId);
+        if (exact != null) {
+            return exact;
+        }
+        return idToRoomNumber.getOrDefault(roomId.trim().toUpperCase(), 0);
     }
 
     public int getTotalRooms() {

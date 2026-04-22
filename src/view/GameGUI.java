@@ -48,7 +48,6 @@ import model.PuzzleLoader;
 import model.SaveManager;
 
 public class GameGUI extends Application {
-
     private enum GameState {
         MAIN_MENU,
         EXPLORATION,
