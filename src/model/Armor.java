@@ -1,10 +1,10 @@
 package model;
 
 public class Armor extends Item {
-    private int defense;
+    private final int defense;
 
     public Armor(String name, int defense) {
-        super(name);
+        super(name, "Armor", "Common", "Protective gear.", "+" + defense + " defense", "None");
         this.defense = defense;
     }
 
@@ -14,5 +14,10 @@ public class Armor extends Item {
 
     public int getDefenseBonus() {
         return defense;
+    }
+
+    @Override
+    public String getInfo() {
+        return super.getInfo() + "\nDefense: " + defense;
     }
 }

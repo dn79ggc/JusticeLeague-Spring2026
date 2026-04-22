@@ -21,6 +21,8 @@ public class GameController {
     private boolean puzzleActive = false;
     private Puzzle activePuzzle = null;
     private CombatSystem combatSystem;
+    private InventoryController inventoryController;
+
 
     // Called by Main. Owns the game loop.
     public void run() {
@@ -29,6 +31,7 @@ public class GameController {
         Game game = new Game();
         GameView view = new GameView();
         Player player = new Player(1);
+        inventoryController = new InventoryController();
 
         if (!game.mapGenerate(MAP_FILE)) {
             view.showMapLoadError(MAP_FILE);

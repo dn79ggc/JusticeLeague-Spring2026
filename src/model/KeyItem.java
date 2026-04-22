@@ -1,7 +1,7 @@
 package model;
 
 public class KeyItem extends Item {
-    private String unlockTarget;
+    private final String unlockTarget;
     private boolean consumed;
 
     public KeyItem(String name) {
@@ -9,7 +9,8 @@ public class KeyItem extends Item {
     }
 
     public KeyItem(String name, String unlockTarget) {
-        super(name);
+        super(name, "Key Item", "Mythical", "A special item used to unlock something.",
+                "Unlocks an area or puzzle", "Usually one-time use");
         this.unlockTarget = unlockTarget == null ? "" : unlockTarget;
         this.consumed = false;
     }
@@ -24,5 +25,17 @@ public class KeyItem extends Item {
 
     public boolean isConsumed() {
         return consumed;
+    }
+
+    @Override
+    public String getInfo() {
+        return super.getInfo() + "\nUnlock Target: " + unlockTarget;
+    }
+
+    @Override
+    public void use(Player player) {
+        if (!consumed) {
+            consumed = true;
+        }
     }
 }

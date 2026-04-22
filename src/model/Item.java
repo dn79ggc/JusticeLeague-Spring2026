@@ -8,32 +8,71 @@ public class Item {
     private String benefit;
     private String weakness;
 
-    private int healAmount;
-    private int attackBonus;
-    private int defenseBonus;
-    private int missChance;
-
-    private boolean equippable;
-    private boolean consumable;
-    private String keyTarget;
-
     public Item() {
         this.name = "Item";
+        this.itemType = "Unknown";
+        this.rarity = "Common";
+        this.description = "No description.";
+        this.benefit = "None";
+        this.weakness = "None";
     }
 
     public Item(String name) {
         this.name = name;
+        this.itemType = "Unknown";
+        this.rarity = "Common";
+        this.description = "No description.";
+        this.benefit = "None";
+        this.weakness = "None";
+    }
+
+    public Item(String name, String itemType) {
+        this(name, itemType, "Common", "No description.", "None", "None");
+    }
+
+    public Item(String name, String itemType, String rarity, String description, String benefit, String weakness) {
+        this.name = name;
+        this.itemType = itemType;
+        this.rarity = rarity;
+        this.description = description;
+        this.benefit = benefit;
+        this.weakness = weakness;
     }
 
     public String getName() {
         return name;
     }
 
+    public String getItemType() {
+        return itemType;
+    }
+
+    public String getRarity() {
+        return rarity;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getBenefit() {
+        return benefit;
+    }
+
+    public String getWeakness() {
+        return weakness;
+    }
+
     public String getInfo() {
-        return name;
+        return "Name: " + name
+                + "\nType: " + itemType
+                + "\nRarity: " + rarity
+                + "\nDescription: " + description
+                + "\nBenefit: " + benefit
+                + "\nWeakness: " + weakness;
     }
 
     public void use(Player player) {
-        // Default behavior: no effect.
+        // Default item does nothing
     }
 }

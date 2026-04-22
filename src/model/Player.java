@@ -314,6 +314,10 @@ public class Player {
         return currentHP;
     }
 
+    public int getMaxHP() {
+        return maxHP;
+    }
+
     public int getCurrentHp() {
         return getCurrentHP();
     }
@@ -349,15 +353,10 @@ public class Player {
     }
 
     public void applyStatusEffects() {
-
-    }
-
-    public int getMaxHP() {
-        return maxHP;
-    }
-
-    public int getMaxHp() {
-        return getMaxHP();
+        for (StatusEffect effect : statusEffects) {
+            effect.tick();
+        }
+        statusEffects.removeIf(StatusEffect::isExpired);
     }
 
     public int getAttackValue() {

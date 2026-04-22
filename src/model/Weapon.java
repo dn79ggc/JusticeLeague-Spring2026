@@ -5,21 +5,21 @@ import java.util.Random;
 public class Weapon extends Item {
     private static final Random RNG = new Random();
 
-    private int damage;
-    private String weaponType;
-    private int missChance;
-    private String specialEffect;
+    private final int damage;
+    private final String weaponType;
+    private final int missChance;
+    private final String specialEffect;
 
     public Weapon(String name, int damage) {
-        this(name, damage, "Melee", 0, "NONE");
+        this(name, damage, "Melee", 0, "None");
     }
 
     public Weapon(String name, int damage, String weaponType, int missChance, String specialEffect) {
-        super(name);
+        super(name, "Weapon", "Common", "A weapon used in combat.", "+" + damage + " attack", "May miss");
         this.damage = damage;
-        this.weaponType = weaponType == null ? "Melee" : weaponType;
+        this.weaponType = weaponType == null ? "melee" : weaponType.toLowerCase();
         this.missChance = Math.max(0, missChance);
-        this.specialEffect = specialEffect == null ? "NONE" : specialEffect;
+        this.specialEffect = specialEffect == null ? "None" : specialEffect;
     }
 
     public int getDamage() {
@@ -31,7 +31,7 @@ public class Weapon extends Item {
     }
 
     public String getWeaponType() {
-        return weaponType.toLowerCase();
+        return weaponType;
     }
 
     public boolean isRanged() {
@@ -48,5 +48,14 @@ public class Weapon extends Item {
 
     public String getSpecialEffect() {
         return specialEffect;
+    }
+
+    @Override
+    public String getInfo() {
+        return super.getInfo()
+                + "\nDamage: " + damage
+                + "\nWeapon Type: " + weaponType
+                + "\nMiss Chance: " + missChance + "%"
+                + "\nSpecial Effect: " + specialEffect;
     }
 }
