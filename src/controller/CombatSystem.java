@@ -19,6 +19,7 @@ import view.GameView;
 public class CombatSystem {
     private static final int COMBAT_DURATION = -1;
     private static final double BASE_FLEE_CHANCE = 0.50;
+    private static final int DAMAGE_VARIANCE = 3;
 
     private final Game game;
     private final GameView view;
@@ -383,7 +384,7 @@ public class CombatSystem {
         }
 
         double defendMultiplier = player.isDefending() ? 0.5 : 1.0;
-        int rawDamage = (int) (player.getCurrentHp() * damagePercent * darkenMultiplier * defendMultiplier);
+        int rawDamage = calculateMonsterDamage(player, damagePercent, darkenMultiplier, defendMultiplier);
         int finalDamage = Math.max(0, rawDamage - player.getDefenseValue());
 
         player.takeDamage(finalDamage);
@@ -395,6 +396,14 @@ public class CombatSystem {
         if (statusEffect != EffectType.NONE && effectChance > 0.0 && rng.nextDouble() < effectChance) {
             applyStatusEffect(statusEffect, player);
         }
+    }
+
+    private int calculateMonsterDamage(Player player, double damagePercent, double damageMultiplier,
+            double defendMultiplier) {
+        int baseDamage = (int) Math.round(player.getMaxHp() * damagePercent);
+        int variance = rng.nextInt(DAMAGE_VARIANCE * 2 + 1) - DAMAGE_VARIANCE;
+        int variedDamage = Math.max(0, baseDamage + variance);
+        return (int) Math.round(variedDamage * damageMultiplier * defendMultiplier);
     }
 
     private void applyStatusEffect(EffectType effectType, Player player) {
