@@ -1,5 +1,6 @@
 package view;
 
+import controller.CombatSystem;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.HPos;
@@ -21,6 +22,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -35,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import model.Game;
+import model.Monster;
 import model.Player;
 import model.Room;
 import model.Puzzle;
@@ -75,6 +78,7 @@ public class GameGUI extends Application {
     private VBox puzzleTextPanel;
     private VBox puzzleCardPanel;
     private VBox gameOverPanel;
+    private VBox centerColumn;
     private Button btnSaveMenu;
     private Button btnQuitMenu;
     private Button btnNewGame;
@@ -139,6 +143,23 @@ public class GameGUI extends Application {
     private Label lblExits;
     private Label lblRoomDescription;
     private Label lblPuzzleCardTitle;
+    private Label lblPuzzleNameInfo;
+    private Label lblPuzzleAttemptsInfo;
+    private Label lblWrongAnswersInfo;
+    private Label lblCardTotalInfo;
+    private Label lblEnemyName;
+    private ProgressBar pbEnemyHP;
+    private Label lblEnemyHPValues;
+    private Label lblWeakness;
+    private Label lblResistance;
+    private Label lblMonsterStatus;
+    private VBox combatInfoSectionBox;
+    private VBox puzzleInfoSectionBox;
+    private ListView<String> lstStatusEffects;
+    private Label lblStatusHeader;
+    private Label lblStatusDescription;
+    private ListView<String> lstInventory;
+    private CombatSystem combatSystem;
 
     @Override
     public void start(Stage stage) {
@@ -151,22 +172,27 @@ public class GameGUI extends Application {
         if (!game.loadPuzzles("puzzles.csv")) {
             System.out.println("Failed to load puzzles from data/puzzles.csv.");
         }
+        if (!game.loadMonstersFromCsv("monsters.csv")) {
+            System.out.println("Failed to load monsters from data/monsters.csv.");
+        }
         player = Player.loadFromCsv("data/player_data.csv", game);
         selectedRoomNumber = player.getLocation();
         Room startingRoom = game.getRoomByNumber(player.getLocation());
         if (startingRoom != null) {
             startingRoom.setVisited();
+            player.setCurrentRoom(startingRoom);
         }
+        combatSystem = new CombatSystem(game, createCombatViewBridge());
 
         BorderPane root = new BorderPane();
-        root.setPadding(new Insets(14));
+        root.setPadding(new Insets(10));
         root.setStyle("-fx-background-color: #111827;");
 
         root.setLeft(createLeftColumn());
         root.setCenter(createCenterColumn());
         root.setRight(createRightColumn());
 
-        Scene scene = new Scene(root, 1320, 820, Color.web("#111827"));
+        Scene scene = new Scene(root, 1240, 760, Color.web("#111827"));
         scene.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.F5 && btnSaveMenu != null && isNodeVisible(btnSaveMenu)) {
                 btnSaveMenu.fire();
@@ -263,32 +289,34 @@ public class GameGUI extends Application {
 
     private VBox createLeftColumn() {
         VBox left = new VBox(12);
-        left.setPrefWidth(340);
+        left.setPrefWidth(360);
         left.setPadding(new Insets(0, 8, 0, 0));
 
         VBox playerInfoSection = createSectionBox("Player Information", createPlayerInfoSection());
         VBox roomInfoSection = createSectionBox("Room Information", createRoomInfoSection());
-        VBox combatInfoSection = createSectionBox("Combat Information", createCombatInfoSection());
-        VBox puzzleInfoSection = createSectionBox("Puzzle Information", createPuzzleInfoSection());
+        combatInfoSectionBox = createSectionBox("Combat Information", createCombatInfoSection());
+        puzzleInfoSectionBox = createSectionBox("Puzzle Information", createPuzzleInfoSection());
 
-        left.getChildren().addAll(playerInfoSection, roomInfoSection, combatInfoSection, puzzleInfoSection);
+        left.getChildren().addAll(playerInfoSection, roomInfoSection, combatInfoSectionBox, puzzleInfoSectionBox);
         VBox.setVgrow(playerInfoSection, Priority.NEVER);
         VBox.setVgrow(roomInfoSection, Priority.NEVER);
-        VBox.setVgrow(combatInfoSection, Priority.NEVER);
-        VBox.setVgrow(puzzleInfoSection, Priority.NEVER);
+        VBox.setVgrow(combatInfoSectionBox, Priority.NEVER);
+        VBox.setVgrow(puzzleInfoSectionBox, Priority.NEVER);
 
         ScrollPane scrollPane = new ScrollPane(left);
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-control-inner-background: transparent;");
         VBox wrapper = new VBox(scrollPane);
-        wrapper.setPrefWidth(340);
+        wrapper.setPrefWidth(360);
         return wrapper;
     }
 
     private VBox createCenterColumn() {
-        VBox centerColumn = new VBox(12);
+        centerColumn = new VBox(12);
         centerColumn.setPadding(new Insets(0, 12, 0, 12));
         centerColumn.setAlignment(Pos.TOP_CENTER);
+        centerColumn.setPrefWidth(500);
+        centerColumn.setMaxWidth(560);
 
         outputArea = new TextArea();
         outputArea.setText(
@@ -297,7 +325,7 @@ public class GameGUI extends Application {
         outputArea.setEditable(false);
         outputArea.setStyle(
                 "-fx-control-inner-background: #1f2937; -fx-text-fill: #e5e7eb; -fx-highlight-fill: #2563eb; -fx-highlight-text-fill: white;");
-        outputArea.setPrefHeight(520);
+        outputArea.setPrefHeight(470);
 
         StackPane statePanels = new StackPane();
         statePanels.setPrefHeight(260);
@@ -328,7 +356,7 @@ public class GameGUI extends Application {
 
     private VBox createRightColumn() {
         VBox rightColumn = new VBox(12);
-        rightColumn.setPrefWidth(320);
+        rightColumn.setPrefWidth(290);
 
         Label mapTitle = new Label("Map Preview");
         mapTitle.setFont(Font.font(UI_FONT, FontWeight.BOLD, 18));
@@ -348,15 +376,17 @@ public class GameGUI extends Application {
         mapHint.setTextFill(Color.web("#9ca3af"));
         mapHint.setWrapText(true);
 
+        VBox inventorySection = createSectionBox("Inventory", createInventorySection());
+
         saveQuitBox = createSaveQuitBox();
-        rightColumn.getChildren().addAll(mapTitle, mapGrid, mapHint, saveQuitBox);
+        rightColumn.getChildren().addAll(mapTitle, mapGrid, mapHint, inventorySection, saveQuitBox);
         return rightColumn;
     }
 
     private StackPane createMapCellPane(int row, int col) {
         StackPane cell = new StackPane();
-        cell.setMinSize(52, 52);
-        cell.setPrefSize(52, 52);
+        cell.setMinSize(46, 46);
+        cell.setPrefSize(46, 46);
         cell.setStyle(
                 "-fx-background-color: #0f172a; -fx-border-color: #000000; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-radius: 8;");
         mapCells.put(cellKey(row, col), cell);
@@ -437,7 +467,7 @@ public class GameGUI extends Application {
                         topWidth, rightWidth, bottomWidth, leftWidth));
 
                 Label cellLabel = new Label(displayText);
-                cellLabel.setFont(Font.font("Consolas", FontWeight.BOLD, 12));
+                cellLabel.setFont(Font.font("Consolas", FontWeight.BOLD, 11));
                 cellLabel.setTextFill(Color.web(textColor));
                 cellLabel.setWrapText(true);
                 cell.getChildren().add(cellLabel);
@@ -523,9 +553,20 @@ public class GameGUI extends Application {
 
     private VBox createPlayerInfoSection() {
         GridPane grid = new GridPane();
-        grid.setHgap(8);
+        grid.setHgap(6);
         grid.setVgap(10);
         grid.setPadding(new Insets(0));
+
+        ColumnConstraints col0 = new ColumnConstraints();
+        col0.setPercentWidth(33);
+        col0.setHgrow(Priority.ALWAYS);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(33);
+        col1.setHgrow(Priority.ALWAYS);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(34);
+        col2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col0, col1, col2);
 
         lblPlayerName = createSectionLabel("Playing as: [name]");
         Label lblHP = createSectionLabel("HP:");
@@ -537,11 +578,10 @@ public class GameGUI extends Application {
         lblBag = createSectionLabel("Bag: 0 / 7");
         lblEquippedWeapon = createSectionLabel("Weapon: None");
         lblEquippedArmor = createSectionLabel("Armor: None");
-        Label lblStatusHeader = createSectionLabel("Status Effects:");
+        lblStatusHeader = createSectionLabel("Status Effects:");
 
-        ListView<String> lstStatusEffects = new ListView<>();
-        lstStatusEffects.getItems().addAll("Poisoned", "Hasted");
-        lstStatusEffects.setPrefHeight(112);
+        lstStatusEffects = new ListView<>();
+        lstStatusEffects.setPrefHeight(64);
         lstStatusEffects.setStyle(
                 "-fx-control-inner-background: #111827; -fx-background-color: #111827; -fx-border-color: #374151; -fx-border-width: 1;");
         lstStatusEffects.setCellFactory(list -> new ListCell<>() {
@@ -559,7 +599,7 @@ public class GameGUI extends Application {
             }
         });
 
-        Label lblStatusDescription = createSectionLabel("Status Effect Details: None selected.");
+        lblStatusDescription = createSectionLabel("Status Effect Details: None selected.");
         lblStatusDescription.setWrapText(true);
         lblStatusDescription.setFont(Font.font(UI_FONT, 12));
         lblStatusDescription.setTextFill(Color.web("#d1d5db"));
@@ -572,18 +612,18 @@ public class GameGUI extends Application {
             }
         });
 
-        grid.add(lblPlayerName, 0, 0, 2, 1);
+        grid.add(lblPlayerName, 0, 0, 3, 1);
         grid.add(lblHP, 0, 1);
-        grid.add(pbPlayerHP, 1, 1);
-        grid.add(lblHPValues, 1, 2);
+        grid.add(pbPlayerHP, 1, 1, 2, 1);
+        grid.add(lblHPValues, 1, 2, 2, 1);
         grid.add(lblATK, 0, 3);
         grid.add(lblDEF, 1, 3);
-        grid.add(lblBag, 0, 4, 2, 1);
-        grid.add(lblEquippedWeapon, 0, 5, 2, 1);
-        grid.add(lblEquippedArmor, 0, 6, 2, 1);
-        grid.add(lblStatusHeader, 0, 7, 2, 1);
-        grid.add(lstStatusEffects, 0, 8, 2, 1);
-        grid.add(lblStatusDescription, 0, 9, 2, 1);
+        grid.add(lblBag, 2, 3);
+        grid.add(lblEquippedWeapon, 0, 4);
+        grid.add(lblEquippedArmor, 1, 4, 2, 1);
+        grid.add(lblStatusHeader, 0, 5, 3, 1);
+        grid.add(lstStatusEffects, 0, 6, 3, 1);
+        grid.add(lblStatusDescription, 0, 7, 3, 1);
 
         VBox content = new VBox(grid);
         content.setPadding(new Insets(0));
@@ -599,6 +639,17 @@ public class GameGUI extends Application {
         sectionBox.setPadding(new Insets(10));
         sectionBox.setStyle(UI_PANEL_STYLE);
         return sectionBox;
+    }
+
+    private VBox createInventorySection() {
+        VBox box = new VBox(8);
+        box.setPadding(new Insets(8));
+        lstInventory = new ListView<>();
+        lstInventory.setPrefHeight(120);
+        lstInventory.setStyle(
+                "-fx-control-inner-background: #111827; -fx-background-color: #111827; -fx-border-color: #374151; -fx-border-width: 1;");
+        box.getChildren().add(lstInventory);
+        return box;
     }
 
     private VBox createRoomInfoSection() {
@@ -622,14 +673,14 @@ public class GameGUI extends Application {
         VBox box = new VBox(8);
         box.setPadding(new Insets(10));
 
-        Label lblEnemyName = createSectionLabel("Banshee  Lv.2");
+        lblEnemyName = createSectionLabel("No enemy");
         Label lblEnemyHP = createSectionLabel("HP:");
-        ProgressBar pbEnemyHP = new ProgressBar(0.8);
+        pbEnemyHP = new ProgressBar(0.0);
         pbEnemyHP.setPrefWidth(220);
-        Label lblEnemyHPValues = createSectionLabel("40 / 50");
-        Label lblWeakness = createSectionLabel("Weak: Ranged weapons");
-        Label lblResistance = createSectionLabel("Resists: Melee weapons");
-        Label lblMonsterStatus = createSectionLabel("Status: —");
+        lblEnemyHPValues = createSectionLabel("0 / 0");
+        lblWeakness = createSectionLabel("Weak: None");
+        lblResistance = createSectionLabel("Resists: None");
+        lblMonsterStatus = createSectionLabel("Status: —");
 
         box.getChildren().addAll(lblEnemyName, lblEnemyHP, pbEnemyHP, lblEnemyHPValues, new Separator(), lblWeakness,
                 lblResistance, lblMonsterStatus);
@@ -640,16 +691,20 @@ public class GameGUI extends Application {
         VBox box = new VBox(8);
         box.setPadding(new Insets(10));
 
-        Label lblPuzzleName = createSectionLabel("Ghost Riddle");
-        Label lblAttemptsLabel = createSectionLabel("Attempts:");
-        Label lblPuzzleAttempts = createSectionLabel("2");
-        lblPuzzleAttempts.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
-        lblPuzzleAttempts.setTextFill(Color.web("#34d399"));
-        Label lblWrongAnswers = createSectionLabel("Wrong so far: —");
-        Label lblCardTotal = createSectionLabel("Total: 14");
-        lblCardTotal.setVisible(false);
+        lblPuzzleNameInfo = createSectionLabel("—");
+        lblPuzzleNameInfo.setFont(Font.font(UI_FONT, FontWeight.BOLD, 14));
+        Label lblAttemptsLabel = createSectionLabel("Attempts remaining:");
+        lblPuzzleAttemptsInfo = createSectionLabel("—");
+        lblPuzzleAttemptsInfo.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+        lblPuzzleAttemptsInfo.setTextFill(Color.web("#34d399"));
+        lblWrongAnswersInfo = createSectionLabel("Wrong so far: —");
+        lblWrongAnswersInfo.setWrapText(true);
+        lblCardTotalInfo = createSectionLabel("");
+        lblCardTotalInfo.setVisible(false);
+        lblCardTotalInfo.setManaged(false);
 
-        box.getChildren().addAll(lblPuzzleName, lblAttemptsLabel, lblPuzzleAttempts, lblWrongAnswers, lblCardTotal);
+        box.getChildren().addAll(lblPuzzleNameInfo, lblAttemptsLabel, lblPuzzleAttemptsInfo, lblWrongAnswersInfo,
+                lblCardTotalInfo);
         return box;
     }
 
@@ -705,6 +760,10 @@ public class GameGUI extends Application {
         lblTestHeader.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
         lblTestHeader.setTextFill(Color.web("#fca5a5"));
 
+        Label lblMonsterTestHeader = createSectionLabel("Monster Test Launcher");
+        lblMonsterTestHeader.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+        lblMonsterTestHeader.setTextFill(Color.web("#93c5fd"));
+
         GridPane puzzleTestGrid = new GridPane();
         puzzleTestGrid.setHgap(10);
         puzzleTestGrid.setVgap(10);
@@ -733,8 +792,29 @@ public class GameGUI extends Application {
         puzzleTestGrid.add(btnTestP10, 0, 4);
         puzzleTestGrid.add(btnTestP11, 1, 4);
 
+        GridPane monsterTestGrid = new GridPane();
+        monsterTestGrid.setHgap(10);
+        monsterTestGrid.setVgap(10);
+        monsterTestGrid.setPadding(new Insets(10, 0, 0, 0));
+
+        Button btnTestM01 = createMonsterTestButton("Banshee", "M01");
+        Button btnTestM02 = createMonsterTestButton("Small Possessor", "M02");
+        Button btnTestM04 = createMonsterTestButton("Medium Possessor", "M04");
+        Button btnTestM05 = createMonsterTestButton("Poltergeist", "M05");
+        Button btnTestM06 = createMonsterTestButton("Large Possessor", "M06");
+        Button btnTestM07 = createMonsterTestButton("Shadow", "M07");
+        Button btnTestM08 = createMonsterTestButton("The Freak", "M08");
+
+        monsterTestGrid.add(btnTestM01, 0, 0);
+        monsterTestGrid.add(btnTestM02, 1, 0);
+        monsterTestGrid.add(btnTestM04, 0, 1);
+        monsterTestGrid.add(btnTestM05, 1, 1);
+        monsterTestGrid.add(btnTestM06, 0, 2);
+        monsterTestGrid.add(btnTestM07, 1, 2);
+        monsterTestGrid.add(btnTestM08, 0, 3);
+
         box.getChildren().addAll(btnNewGame, btnLoadGame, btnQuitMainMenu, new Separator(), lblTestHeader,
-                puzzleTestGrid);
+                puzzleTestGrid, new Separator(), lblMonsterTestHeader, monsterTestGrid);
         return box;
     }
 
@@ -811,12 +891,12 @@ public class GameGUI extends Application {
         HBox row3 = new HBox(btnInspect);
         row3.setAlignment(Pos.CENTER_RIGHT);
 
-        btnAttack.setOnAction(e -> System.out.println("Attack selected."));
-        btnDefend.setOnAction(e -> System.out.println("Defend selected."));
-        btnUseItem.setOnAction(e -> System.out.println("Use Item selected."));
-        btnEquip.setOnAction(e -> System.out.println("Equip selected."));
-        btnFlee.setOnAction(e -> System.out.println("Flee selected."));
-        btnInspect.setOnAction(e -> System.out.println("Inspect selected."));
+        btnAttack.setOnAction(e -> runCombatAction("attack"));
+        btnDefend.setOnAction(e -> runCombatAction("defend"));
+        btnUseItem.setOnAction(e -> runCombatAction("useitem"));
+        btnEquip.setOnAction(e -> runCombatAction("equip"));
+        btnFlee.setOnAction(e -> runCombatAction("flee"));
+        btnInspect.setOnAction(e -> runCombatAction("inspect enemy"));
 
         box.getChildren().addAll(row1, row2, row3);
         return box;
@@ -1047,7 +1127,7 @@ public class GameGUI extends Application {
     private Label createSectionLabel(String text) {
         Label label = new Label(text);
         label.setTextFill(Color.web(UI_TEXT_COLOR));
-        label.setFont(Font.font(UI_FONT, 13));
+        label.setFont(Font.font(UI_FONT, 12));
         return label;
     }
 
@@ -1066,6 +1146,13 @@ public class GameGUI extends Application {
             setGameState(state);
             startPuzzleUI(activePuzzle);
         });
+        return button;
+    }
+
+    private Button createMonsterTestButton(String label, String monsterId) {
+        Button button = new Button(label);
+        button.setPrefWidth(240);
+        button.setOnAction(e -> startMonsterTest(monsterId));
         return button;
     }
 
@@ -1092,6 +1179,31 @@ public class GameGUI extends Application {
             lblPuzzleNarrative.setText(puzzle.getNarrative() + "\n\n" + puzzle.start());
         }
 
+        // Update left-panel puzzle info section
+        if (lblPuzzleNameInfo != null) {
+            lblPuzzleNameInfo.setText(puzzle.getName());
+        }
+        if (lblPuzzleAttemptsInfo != null) {
+            lblPuzzleAttemptsInfo.setText(String.valueOf(puzzle.getAttempts()));
+            lblPuzzleAttemptsInfo.setTextFill(Color.web("#34d399"));
+        }
+        if (lblWrongAnswersInfo != null) {
+            lblWrongAnswersInfo.setText("Wrong so far: —");
+        }
+        boolean isCard = activePuzzleType == PuzzleUIType.POKER || activePuzzleType == PuzzleUIType.DICE
+                || activePuzzleType == PuzzleUIType.SELECTION;
+        if (lblCardTotalInfo != null) {
+            if (isCard) {
+                lblCardTotalInfo.setText("Type: " + activePuzzleType.name().charAt(0)
+                        + activePuzzleType.name().substring(1).toLowerCase());
+                lblCardTotalInfo.setVisible(true);
+                lblCardTotalInfo.setManaged(true);
+            } else {
+                lblCardTotalInfo.setVisible(false);
+                lblCardTotalInfo.setManaged(false);
+            }
+        }
+
         System.out.println("Puzzle started: " + puzzle.getName());
         if (puzzle.hasHint()) {
             System.out.println("Hint available: type hint or press the hint button.");
@@ -1112,6 +1224,45 @@ public class GameGUI extends Application {
                 "Weapon: " + (player.getEquippedWeapon() != null ? player.getEquippedWeapon().getName() : "None"));
         lblEquippedArmor.setText(
                 "Armor: " + (player.getEquippedArmor() != null ? player.getEquippedArmor().getName() : "None"));
+        updateStatusEffectsUI();
+        updateInventoryPanel();
+    }
+
+    private void updateStatusEffectsUI() {
+        if (player == null || lstStatusEffects == null || lblStatusHeader == null || lblStatusDescription == null) {
+            return;
+        }
+
+        lstStatusEffects.getItems().clear();
+        for (model.StatusEffect effect : player.getStatusEffects()) {
+            lstStatusEffects.getItems().add(effect.getName());
+        }
+
+        int count = lstStatusEffects.getItems().size();
+        boolean visible = count > 0;
+        lblStatusHeader.setVisible(true);
+        lblStatusHeader.setManaged(true);
+        lstStatusEffects.setVisible(visible);
+        lstStatusEffects.setManaged(visible);
+        lblStatusDescription.setVisible(visible);
+        lblStatusDescription.setManaged(visible);
+
+        if (!visible) {
+            lblStatusDescription.setText("Status Effect Details: None active.");
+            return;
+        }
+
+        double rowHeight = 24.0;
+        double height = Math.min(120.0, Math.max(36.0, count * rowHeight + 2.0));
+        lstStatusEffects.setPrefHeight(height);
+        lblStatusDescription.setText("Status Effect Details: Select an active effect.");
+    }
+
+    private void updateInventoryPanel() {
+        if (player == null || lstInventory == null) {
+            return;
+        }
+        lstInventory.getItems().setAll(player.showInventory());
     }
 
     private void updateRoomInfo() {
@@ -1152,6 +1303,10 @@ public class GameGUI extends Application {
         if (player == null || game == null) {
             return;
         }
+        if (combatSystem != null && combatSystem.isInCombat()) {
+            outputText("You cannot move while in combat.");
+            return;
+        }
         Room currentRoom = game.getRoomByNumber(player.getLocation());
         if (currentRoom == null) {
             outputText("No current room is loaded.");
@@ -1175,9 +1330,11 @@ public class GameGUI extends Application {
             player.setLocation(destination);
             Room nextRoom = game.getRoomByNumber(destination);
             if (nextRoom != null) {
+                player.setCurrentRoom(nextRoom);
                 nextRoom.setVisited();
                 selectedRoomNumber = destination;
-                outputText("Moved to " + nextRoom.getRoomId() + " — " + nextRoom.getName() + ".");
+                outputText("Moved to " + nextRoom.getRoomId() + " - " + nextRoom.getName() + ".");
+                startCombatIfPresent(nextRoom);
             }
             updatePlayerInfo();
             updateRoomInfo();
@@ -1189,6 +1346,10 @@ public class GameGUI extends Application {
 
     private void attemptPuzzle() {
         if (player == null || game == null) {
+            return;
+        }
+        if (combatSystem != null && combatSystem.isInCombat()) {
+            outputText("You cannot focus on a puzzle while in combat.");
             return;
         }
         Room currentRoom = game.getRoomByNumber(player.getLocation());
@@ -1269,9 +1430,21 @@ public class GameGUI extends Application {
                 clearActivePuzzle();
             }
             case WRONG_RETRY -> {
-                String message = activePuzzle.getFailureMessage() + " Attempts left: " + activePuzzle.getAttemptsLeft();
+                String message = activePuzzle.getFailureMessage() + " Attempts left: " + activePuzzle.getAttempts();
                 System.out.println("Puzzle wrong: " + message);
                 displayPuzzleResult(message);
+                if (lblPuzzleAttemptsInfo != null) {
+                    int remaining = activePuzzle.getAttempts();
+                    lblPuzzleAttemptsInfo.setText(String.valueOf(remaining));
+                    lblPuzzleAttemptsInfo.setTextFill(remaining <= 1
+                            ? Color.web("#f87171")
+                            : Color.web("#34d399"));
+                }
+                if (lblWrongAnswersInfo != null) {
+                    List<String> wrong = activePuzzle.getWrongAnswers();
+                    lblWrongAnswersInfo.setText("Wrong so far: "
+                            + (wrong.isEmpty() ? "—" : String.join(", ", wrong)));
+                }
             }
             case WRONG_FINAL -> {
                 String message = activePuzzle.getFailureMessage() + " The puzzle has failed.";
@@ -1409,6 +1582,18 @@ public class GameGUI extends Application {
                 saveQuitBox.setVisible(false);
             }
         }
+
+        boolean showCombatInfo = state == GameState.COMBAT;
+        if (combatInfoSectionBox != null) {
+            combatInfoSectionBox.setVisible(showCombatInfo);
+            combatInfoSectionBox.setManaged(showCombatInfo);
+        }
+
+        boolean showPuzzleInfo = state == GameState.PUZZLE_TEXT || state == GameState.PUZZLE_CARD;
+        if (puzzleInfoSectionBox != null) {
+            puzzleInfoSectionBox.setVisible(showPuzzleInfo);
+            puzzleInfoSectionBox.setManaged(showPuzzleInfo);
+        }
     }
 
     // ------------------------------------------------------------------
@@ -1500,12 +1685,16 @@ public class GameGUI extends Application {
         player = loaded;
         selectedRoomNumber = player.getLocation();
         Room startRoom = game.getRoomByNumber(selectedRoomNumber);
-        if (startRoom != null)
+        if (startRoom != null) {
             startRoom.setVisited();
+            player.setCurrentRoom(startRoom);
+        }
         updatePlayerInfo();
         updateRoomInfo();
         updateMapGrid();
+        combatSystem = new CombatSystem(game, createCombatViewBridge());
         setGameState(GameState.EXPLORATION);
+        startCombatIfPresent(startRoom);
         outputText("Slot " + slot + " loaded. Welcome back, " + player.getName() + "!");
     }
 
@@ -1518,16 +1707,163 @@ public class GameGUI extends Application {
         if (!game.loadPuzzles("puzzles.csv")) {
             System.out.println("Failed to load puzzles.csv during reset.");
         }
+        if (!game.loadMonstersFromCsv("monsters.csv")) {
+            System.out.println("Failed to load monsters.csv during reset.");
+        }
         player = Player.loadFromCsv(
                 SaveManager.SAVES_DIR + SaveManager.BASE_SLOT + "/player.csv", game);
         selectedRoomNumber = player.getLocation();
         Room startRoom = game.getRoomByNumber(selectedRoomNumber);
-        if (startRoom != null)
+        if (startRoom != null) {
             startRoom.setVisited();
+            player.setCurrentRoom(startRoom);
+        }
+        combatSystem = new CombatSystem(game, createCombatViewBridge());
         updatePlayerInfo();
         updateRoomInfo();
         updateMapGrid();
         setGameState(GameState.EXPLORATION);
+        startCombatIfPresent(startRoom);
+    }
+
+    private void runCombatAction(String action) {
+        if (combatSystem == null || !combatSystem.isInCombat()) {
+            outputText("You are not currently in combat.");
+            return;
+        }
+        combatSystem.executeCombatCycle(action, player);
+        updatePlayerInfo();
+        updateRoomInfo();
+        updateMapGrid();
+        if (!combatSystem.isInCombat()) {
+            setGameState(GameState.EXPLORATION);
+        }
+    }
+
+    private void startCombatIfPresent(Room room) {
+        if (room == null || combatSystem == null) {
+            return;
+        }
+        Monster monster = room.getMonster();
+        if (monster != null && monster.isAlive()) {
+            combatSystem.startCombat(player, monster, room);
+        }
+    }
+
+    private void startMonsterTest(String monsterId) {
+        if (game == null || combatSystem == null || player == null) {
+            return;
+        }
+        Monster template = game.getMonsterById(monsterId);
+        if (template == null && game.loadMonstersFromCsv("monsters.csv")) {
+            template = game.getMonsterById(monsterId);
+        }
+        if (template == null) {
+            outputText("Monster test setup failed for " + monsterId + ".");
+            return;
+        }
+
+        Monster testMonster = template.createCombatTestCopy();
+        Room arena = new Room("TEST", "Combat Test Arena", "A safe arena for combat debugging.");
+        arena.setMonster(testMonster);
+        player.setCurrentRoom(
+                player.getCurrentRoom() != null ? player.getCurrentRoom() : game.getRoomByNumber(player.getLocation()));
+        outputText("Starting test combat against " + testMonster.getName() + ".");
+        combatSystem.startCombat(player, testMonster, arena);
+    }
+
+    private GameView createCombatViewBridge() {
+        return new GameView() {
+            @Override
+            public void showCombatStart(String monsterName, int level) {
+                setGameState(GameState.COMBAT);
+                outputText("Encountered " + monsterName + " (Lv." + level + ")");
+                Monster active = combatSystem != null ? combatSystem.getActiveMonster() : null;
+                if (active != null) {
+                    lblEnemyName.setText(active.getName() + "  Lv." + active.getLevel());
+                    lblWeakness.setText("Weak: " + formatTypeLabel(active.getWeakType(), active.getWeakModifier()));
+                    lblResistance
+                            .setText("Resists: " + formatTypeLabel(active.getResistType(), active.getResistModifier()));
+                    lblMonsterStatus.setText("Status: Active");
+                }
+            }
+
+            @Override
+            public void updateMonsterStats(String name, int currentHp, int maxHp) {
+                lblEnemyName.setText(name);
+                lblEnemyHPValues.setText(currentHp + " / " + maxHp);
+                pbEnemyHP.setProgress(maxHp <= 0 ? 0.0 : (currentHp / (double) maxHp));
+                Monster active = combatSystem != null ? combatSystem.getActiveMonster() : null;
+                if (active != null) {
+                    lblMonsterStatus.setText("Status: " + buildMonsterStatusString(active));
+                }
+            }
+
+            @Override
+            public void displayMessage(String message, MessageType type) {
+                outputText(message);
+            }
+
+            @Override
+            public void updatePlayerStats(int currentHp, int maxHp, int atk, int def) {
+                updatePlayerInfo();
+            }
+
+            @Override
+            public void setCombatActionsEnabled(boolean enabled) {
+                btnAttack.setDisable(!enabled);
+                btnDefend.setDisable(!enabled);
+                btnUseItem.setDisable(!enabled);
+                btnEquip.setDisable(!enabled);
+                btnFlee.setDisable(!enabled);
+                btnInspect.setDisable(!enabled);
+            }
+
+            @Override
+            public void showInspectEnemy(String info) {
+                outputText(info);
+            }
+
+            @Override
+            public void showGameOverScreen() {
+                setGameState(GameState.GAME_OVER);
+                outputText("You have been defeated.");
+            }
+
+            @Override
+            public void showWinScreen(WinType winType) {
+                setGameState(GameState.GAME_OVER);
+                outputText(winType == WinType.CLEANSE ? "Cleanse ending achieved." : "Escape ending achieved.");
+            }
+        };
+    }
+
+    private String formatTypeLabel(String type, double modifier) {
+        if (type == null || "NONE".equalsIgnoreCase(type)) {
+            return "None";
+        }
+        int pct = (int) Math.round(Math.abs(modifier * 100.0));
+        return type + " (" + pct + "%)";
+    }
+
+    private String buildMonsterStatusString(Monster monster) {
+        if (monster == null) {
+            return "\u2014";
+        }
+        List<String> parts = new java.util.ArrayList<>();
+        if (monster.hasFortifyActive()) {
+            parts.add("Fortified");
+        }
+        if (monster.hasBarricaded()) {
+            parts.add("Barricaded");
+        }
+        if (monster.isSummoning()) {
+            parts.add("Summoning\u2026");
+        }
+        if (monster.isSummonActive()) {
+            parts.add("Summon active");
+        }
+        return parts.isEmpty() ? "Active" : String.join(", ", parts);
     }
 
     public static void main(String[] args) {

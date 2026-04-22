@@ -4,6 +4,7 @@ package controller;
 import model.Armor;
 import model.Game;
 import model.Item;
+import model.Monster;
 import model.Player;
 import model.Puzzle;
 import model.Room;
@@ -19,6 +20,7 @@ public class GameController {
 
     private boolean puzzleActive = false;
     private Puzzle activePuzzle = null;
+    private CombatSystem combatSystem;
 
     // Called by Main. Owns the game loop.
     public void run() {
@@ -34,15 +36,33 @@ public class GameController {
         }
 
         game.loadPuzzles(PUZZLE_FILE);
+        game.loadMonstersFromCsv("monsters.csv");
 
         view.showMapLoadSuccess();
         view.showWelcome(game.getTotalRooms());
         game.getRoomByNumber(1).setVisited();
 
+        combatSystem = new CombatSystem(game, view);
+
         boolean gameEnd = false;
         while (!gameEnd) {
             Room currentRoom = game.getRoomByNumber(player.getLocation());
-            view.showPrompt(currentRoom.getRoomName(), currentRoom.hasPuzzle());
+            player.setCurrentRoom(currentRoom);
+
+            if (!combatSystem.isInCombat()
+                    && currentRoom != null
+                    && currentRoom.hasMonster()
+                    && currentRoom.getMonster().isAlive()) {
+                combatSystem.startCombat(player, currentRoom.getMonster(), currentRoom);
+            }
+
+            if (combatSystem.isInCombat()) {
+                view.showMessage(
+                        "Combat actions: attack, defend, useitem, use [item], equip, equip [weapon], flee, inspect enemy\n");
+                System.out.print("> ");
+            } else {
+                view.showPrompt(currentRoom.getRoomName(), currentRoom.hasPuzzle());
+            }
 
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) {
@@ -67,6 +87,11 @@ public class GameController {
             return false;
         }
 
+        if (combatSystem != null && combatSystem.isInCombat()) {
+            combatSystem.executeCombatCycle(input, player);
+            return false;
+        }
+
         if (input.equalsIgnoreCase("solve puzzle")) {
             handleSolvePuzzle(player, view, currentRoom);
             return false;
@@ -83,11 +108,20 @@ public class GameController {
 
             view.showMoveSuccess();
             Room newRoom = game.getRoomByNumber(nextRoomNumber);
+            player.setCurrentRoom(newRoom);
             if (!newRoom.isVisited()) {
                 newRoom.setVisited();
                 player.incrementRoomsVisited();
+                if (newRoom.hasMonster() && newRoom.getMonster().isAlive()) {
+                    combatSystem.startCombat(player, newRoom.getMonster(), newRoom);
+                    return false;
+                }
                 view.showNewRoom(newRoom.getRoomName(), newRoom.getRoomDescription());
             } else {
+                if (newRoom.hasMonster() && newRoom.getMonster().isAlive()) {
+                    combatSystem.startCombat(player, newRoom.getMonster(), newRoom);
+                    return false;
+                }
                 view.showVisitedRoom(newRoom.getRoomName());
             }
 
@@ -178,66 +212,17 @@ public class GameController {
         }
 
         if (input.equalsIgnoreCase("attack")) {
-
-            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
-                view.showMessage("There is nothing to attack here.\n");
-                return false;
-            }
-
-            int damage = player.attack();
-            currentRoom.getMonster().takeDamage(damage);
-
-            view.showAttackResult(damage);
-
-            if (!currentRoom.getMonster().isAlive()) {
-                view.showMessage("You defeated the monster!\n");
-                currentRoom.removeMonster();
-                player.resetTurnFlags();
-                return false;
-            }
-
-            // Monster turn would go here later (CombatSystem)
+            view.showMessage("You can only attack while in combat.\n");
             return false;
         }
 
         if (input.equalsIgnoreCase("defend")) {
-
-            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
-                view.showMessage("You are not in combat.\n");
-                return false;
-            }
-
-            player.defend();
-            view.showDefend();
-
-            // Monster turn would follow
+            view.showMessage("You can only defend while in combat.\n");
             return false;
         }
 
         if (input.equalsIgnoreCase("flee")) {
-
-            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
-                view.showMessage("There is nothing to flee from.\n");
-                return false;
-            }
-
-            boolean success = player.flee();
-
-            if (success) {
-                view.showFleeSuccess();
-                currentRoom.getMonster().reset();
-                Room previous = player.getPreviousRoom();
-
-                if (previous != null) {
-                    player.move(previous);
-                    view.showMessage("You retreat to the previous room.\n");
-                }
-            } else {
-                view.showFleeFail();
-                // Monster turn would go here
-            }
-
-            player.resetTurnFlags();
+            view.showMessage("You can only flee while in combat.\n");
             return false;
         }
 
@@ -292,13 +277,16 @@ public class GameController {
         }
 
         if (input.equalsIgnoreCase("inspect enemy")) {
+            Monster monster = combatSystem != null && combatSystem.isInCombat()
+                    ? combatSystem.getActiveMonster()
+                    : currentRoom.getMonster();
 
-            if (!currentRoom.hasMonster() || !currentRoom.getMonster().isAlive()) {
+            if (monster == null || !monster.isAlive()) {
                 view.showMessage("There is no enemy to inspect.\n");
                 return false;
             }
 
-            String info = player.inspectEnemy(currentRoom.getMonster());
+            String info = player.inspectEnemy(monster);
             view.showInspectEnemy(info);
 
             return false;
@@ -323,7 +311,7 @@ public class GameController {
         puzzleActive = true;
         String startText = activePuzzle.start();
         view.showPuzzleStart(activePuzzle.getName(), activePuzzle.getNarrative(), startText,
-                activePuzzle.getAttemptsLeft(), activePuzzle.hasHint());
+                activePuzzle.getAttempts(), activePuzzle.hasHint());
     }
 
     private void handlePuzzleInput(String input, Player player, GameView view, Room currentRoom) {
@@ -340,7 +328,7 @@ public class GameController {
                 activePuzzle = null;
                 puzzleActive = false;
             }
-            case WRONG_RETRY -> view.showPuzzleWrong(activePuzzle.getFailureMessage(), activePuzzle.getAttemptsLeft());
+            case WRONG_RETRY -> view.showPuzzleWrong(activePuzzle.getFailureMessage(), activePuzzle.getAttempts());
             case WRONG_FINAL -> {
                 view.showPuzzleFailed(activePuzzle.getFailureMessage());
                 player.takeDamage(5);

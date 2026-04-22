@@ -64,7 +64,7 @@ public abstract class Puzzle {
         return failureMessage;
     }
 
-    public int getAttemptsLeft() {
+    public int getAttempts() {
         return attemptsLeft;
     }
 

@@ -1,11 +1,13 @@
 package model;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 public class Player {
+    private static final Random RNG = new Random();
 
     // Navigation & Tracking
     private String name;
@@ -109,6 +111,11 @@ public class Player {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setCurrentRoom(Room room) {
+        this.previousRoom = this.currentRoom;
+        this.currentRoom = room;
     }
 
     public void setCurrentHP(int currentHP) {
@@ -277,7 +284,7 @@ public class Player {
     }
 
     public boolean flee() {
-        return false;
+        return RNG.nextDouble() < 0.5;
     }
 
     public void resetTurnFlags() {
@@ -305,6 +312,10 @@ public class Player {
 
     public int getCurrentHP() {
         return currentHP;
+    }
+
+    public int getCurrentHp() {
+        return getCurrentHP();
     }
 
     public int getEffectiveATK() {
@@ -345,6 +356,24 @@ public class Player {
         return maxHP;
     }
 
+    public int getMaxHp() {
+        return getMaxHP();
+    }
+
+    public int getAttackValue() {
+        return getEffectiveATK();
+    }
+
+    public int getDefenseValue() {
+        int tempDefense = 0;
+        for (StatusEffect effect : statusEffects) {
+            if (effect.getEffectType() == EffectType.TEMP_DEF) {
+                tempDefense += (int) effect.getModifier();
+            }
+        }
+        return getEffectiveDEF() + tempDefense;
+    }
+
     public int getBaseAttack() {
         return baseAttack;
     }
@@ -373,6 +402,78 @@ public class Player {
 
     public void clearStatusEffects() {
         statusEffects.clear();
+    }
+
+    public List<StatusEffect> getStatusEffects() {
+        return statusEffects;
+    }
+
+    public StatusEffect getStatusEffect(EffectType type) {
+        for (StatusEffect effect : statusEffects) {
+            if (effect.getEffectType() == type) {
+                return effect;
+            }
+        }
+        return null;
+    }
+
+    public void removeStatusEffect(EffectType type) {
+        statusEffects.removeIf(effect -> effect.getEffectType() == type);
+    }
+
+    public boolean isDefending() {
+        return isDefending;
+    }
+
+    public void setDefending(boolean defending) {
+        isDefending = defending;
+    }
+
+    public boolean isItemUsedThisTurn() {
+        return itemUsedThisTurn;
+    }
+
+    public void setItemUsedThisTurn(boolean itemUsedThisTurn) {
+        this.itemUsedThisTurn = itemUsedThisTurn;
+    }
+
+    public List<Weapon> getWeapons() {
+        List<Weapon> weapons = new ArrayList<>();
+        for (Item item : inventory) {
+            if (item instanceof Weapon weapon) {
+                weapons.add(weapon);
+            }
+        }
+        return weapons;
+    }
+
+    public List<Weapon> getRangedWeapons() {
+        List<Weapon> weapons = new ArrayList<>();
+        for (Weapon weapon : getWeapons()) {
+            if (weapon.isRanged()) {
+                weapons.add(weapon);
+            }
+        }
+        return weapons;
+    }
+
+    public List<Consumable> getConsumables() {
+        List<Consumable> consumables = new ArrayList<>();
+        for (Item item : inventory) {
+            if (item instanceof Consumable consumable) {
+                consumables.add(consumable);
+            }
+        }
+        return consumables;
+    }
+
+    public boolean hasKeyItem(String keyName) {
+        for (Item item : inventory) {
+            if (item instanceof KeyItem && item.getName().equalsIgnoreCase(keyName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Puzzle Interaction

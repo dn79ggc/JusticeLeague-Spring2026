@@ -4,6 +4,20 @@ import java.util.List;
 
 public class GameView {
 
+    public enum MessageType {
+        SYSTEM,
+        NARRATION,
+        DAMAGE,
+        HEAL,
+        ERROR,
+        SEPARATOR
+    }
+
+    public enum WinType {
+        CLEANSE,
+        ESCAPE
+    }
+
     // Shown once after the map loads successfully
     public void showWelcome(int totalRooms) {
         System.out.println("=== Welcome to Text Explorer Game ===");
@@ -123,6 +137,48 @@ public class GameView {
 
     public void showMessage(String message) {
         System.out.println(message);
+    }
+
+    public void displayMessage(String message, MessageType type) {
+        if (type == MessageType.SEPARATOR) {
+            System.out.println(message);
+            return;
+        }
+        System.out.println("[" + type + "] " + message);
+    }
+
+    public void showCombatStart(String monsterName, int level) {
+        System.out.println("=== Combat Start ===");
+        System.out.println(monsterName + " (Lv " + level + ")");
+    }
+
+    public void updateMonsterStats(String name, int currentHp, int maxHp) {
+        System.out.println("Monster: " + name + " HP " + currentHp + "/" + maxHp);
+    }
+
+    public void updatePlayerStats(int currentHp, int maxHp, int atk, int def) {
+        System.out.println("Player HP " + currentHp + "/" + maxHp + " | ATK " + atk + " | DEF " + def);
+    }
+
+    public void setCombatActionsEnabled(boolean enabled) {
+        // Text UI does not disable controls; command loop gates actions by state.
+    }
+
+    public void updateEquipment(String weaponName, int weaponAtk, String armorName, int defense) {
+        System.out.println("Equipped: " + weaponName + " (ATK+" + weaponAtk + ") | Armor: " + armorName
+                + " | DEF " + defense);
+    }
+
+    public void showGameOverScreen() {
+        System.out.println("=== GAME OVER ===");
+    }
+
+    public void showWinScreen(WinType winType) {
+        if (winType == WinType.CLEANSE) {
+            System.out.println("=== CLEANSE ENDING ===");
+        } else {
+            System.out.println("=== ESCAPE ENDING ===");
+        }
     }
 
     public void showEquipSuccess(String itemName) {

@@ -1,7 +1,7 @@
 package model;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -24,10 +24,15 @@ public class Game {
     private int minCol = 0;
     private int maxCol = 0;
 
+    private Map<String, Monster> monstersById = new HashMap<>();
+
     // Loads rooms from the given filename inside the data/ folder.
     // Returns true on success, false if the file is not found.
     public boolean mapGenerate(String filename) {
         try {
+            rooms.clear();
+            idToRoomNumber.clear();
+            map.clear();
             Table table = Table.read().csv(DATA_DIR + filename);
 
             Map<String, Integer> idToIndex = new HashMap<>();
@@ -60,6 +65,127 @@ public class Game {
         }
     }
 
+    public boolean loadMonstersFromTxt(String filename) {
+        monstersById.clear();
+        int counter = 1;
+        try (BufferedReader reader = new BufferedReader(new FileReader(DATA_DIR + filename))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                String[] parts = line.split(",", 13);
+                if (parts.length < 13) {
+                    continue;
+                }
+                createAndAttachMonsterFromParts(String.format("M%02d", counter++), parts, true);
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean loadMonstersFromCsv(String filename) {
+        monstersById.clear();
+        try {
+            Table table = Table.read().csv(DATA_DIR + filename);
+            List<String> columnNames = table.columnNames();
+            boolean hasMonsterId = columnNames.contains("MonsterID");
+            boolean hasAlive = columnNames.contains("isAlive");
+            for (int i = 0; i < table.rowCount(); i++) {
+                String[] parts = new String[] {
+                        getCellString(table, "monsterClass", i),
+                        getCellString(table, "name", i),
+                        getCellString(table, "level", i),
+                        getCellString(table, "maxHp", i),
+                        getCellString(table, "speed", i),
+                        getCellString(table, "roomId", i),
+                        getCellString(table, "resistType", i),
+                        getCellString(table, "resistModifier", i),
+                        getCellString(table, "weakType", i),
+                        getCellString(table, "weakModifier", i),
+                        getCellString(table, "description", i),
+                        getCellString(table, "abilities", i),
+                        getCellString(table, "specialFlags", i)
+                };
+
+                String monsterId = hasMonsterId
+                        ? getCellString(table, "MonsterID", i)
+                        : String.format("M%02d", i + 1);
+                boolean alive = !hasAlive || parseBoolean(getCellString(table, "isAlive", i), true);
+                createAndAttachMonsterFromParts(monsterId, parts, alive);
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void createAndAttachMonsterFromParts(String id, String[] parts, boolean alive) {
+        String monsterClass = parts[0].trim();
+        String name = parts[1].trim();
+        int level = Integer.parseInt(parts[2].trim());
+        int maxHp = Integer.parseInt(parts[3].trim());
+        int speed = Integer.parseInt(parts[4].trim());
+        String roomId = parts[5].trim();
+        String resistType = parts[6].trim();
+        double resistModifier = Double.parseDouble(parts[7].trim());
+        String weakType = parts[8].trim();
+        double weakModifier = Double.parseDouble(parts[9].trim());
+        String description = parts[10].trim();
+        String abilitiesRaw = parts[11].trim();
+        String flagsRaw = parts[12].trim();
+
+        Monster monster = new Monster(id, monsterClass, name, level, maxHp, speed, roomId,
+                resistType, resistModifier, weakType, weakModifier, description);
+        if (!alive) {
+            monster.setAlive(false);
+        }
+
+        if (!"NONE".equalsIgnoreCase(abilitiesRaw)) {
+            String[] abilityParts = abilitiesRaw.split("\\|");
+            for (String rawAbility : abilityParts) {
+                String[] a = rawAbility.trim().split(":");
+                if (a.length < 5) {
+                    continue;
+                }
+                String abilityName = a[0].trim();
+                double damagePercent = Double.parseDouble(a[1].trim());
+                double hitChance = Double.parseDouble(a[2].trim());
+                EffectType effectType = EffectType.valueOf(a[3].trim().toUpperCase());
+                double effectChance = Double.parseDouble(a[4].trim());
+                monster.addAbility(new MonsterAbility(abilityName, damagePercent, hitChance, effectType, effectChance));
+            }
+        }
+
+        if (!"NONE".equalsIgnoreCase(flagsRaw)) {
+            String[] flagParts = flagsRaw.split(";");
+            for (String rawFlag : flagParts) {
+                String[] kv = rawFlag.trim().split("=");
+                if (kv.length != 2) {
+                    continue;
+                }
+                double value;
+                if ("true".equalsIgnoreCase(kv[1].trim())) {
+                    value = 1.0;
+                } else if ("false".equalsIgnoreCase(kv[1].trim())) {
+                    value = 0.0;
+                } else {
+                    value = Double.parseDouble(kv[1].trim());
+                }
+                monster.setSpecialFlag(kv[0].trim(), value);
+            }
+        }
+
+        monstersById.put(id, monster);
+        Room room = rooms.get(roomId);
+        if (room != null) {
+            room.setMonster(monster);
+        }
+    }
+
     private int parseExit(String roomId, String currentRoomId, java.util.Set<String> seenDestinations,
             Map<String, Integer> idToIndex) {
         if (roomId == null || roomId.isBlank() || roomId.equalsIgnoreCase("null")) {
@@ -73,6 +199,23 @@ public class Game {
         }
         seenDestinations.add(roomId);
         return idToIndex.getOrDefault(roomId, 0);
+    }
+
+    private boolean parseBoolean(String raw, boolean fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        if ("true".equalsIgnoreCase(raw.trim())) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(raw.trim())) {
+            return false;
+        }
+        return fallback;
+    }
+
+    private String getCellString(Table table, String columnName, int rowIndex) {
+        return table.column(columnName).getString(rowIndex);
     }
 
     public boolean loadPuzzles(String filename) {
@@ -96,6 +239,21 @@ public class Game {
 
     public List<Room> getAllRooms() {
         return map;
+    }
+
+    public Map<String, Room> getRoomGraph() {
+        return rooms;
+    }
+
+    public List<Monster> getAllMonsters() {
+        return new ArrayList<>(monstersById.values());
+    }
+
+    public Monster getMonsterById(String monsterId) {
+        if (monsterId == null) {
+            return null;
+        }
+        return monstersById.get(monsterId);
     }
 
     // Centralizes the (roomNumber - 1) index math so it never leaks into

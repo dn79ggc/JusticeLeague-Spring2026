@@ -32,4 +32,8 @@ public class Item {
     public String getInfo() {
         return name;
     }
+
+    public void use(Player player) {
+        // Default behavior: no effect.
+    }
 }

@@ -11,4 +11,8 @@ public class Armor extends Item {
     public int getDefense() {
         return defense;
     }
+
+    public int getDefenseBonus() {
+        return defense;
+    }
 }
