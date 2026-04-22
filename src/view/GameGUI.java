@@ -7,6 +7,7 @@ import javafx.application.Platform;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -33,6 +34,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import java.util.HashMap;
 import java.util.List;
@@ -197,9 +199,15 @@ public class GameGUI extends Application {
         root.setCenter(center);
         root.setRight(rightColumn);
 
-        Scene scene = new Scene(root, 1260, 920, Color.web("#111827"));
-        stage.setMinWidth(1080);
-        stage.setMinHeight(780);
+        Rectangle2D visualBounds = Screen.getPrimary().getVisualBounds();
+        boolean smallDisplay = visualBounds.getWidth() < 1280 || visualBounds.getHeight() < 720;
+
+        double initialWidth = Math.min(1180, visualBounds.getWidth() * 0.92);
+        double initialHeight = Math.min(680, visualBounds.getHeight() * 0.92);
+
+        Scene scene = new Scene(root, initialWidth, initialHeight, Color.web("#111827"));
+        stage.setMinWidth(960);
+        stage.setMinHeight(600);
 
         leftColumn.prefWidthProperty().bind(scene.widthProperty().multiply(0.30));
         leftColumn.minWidthProperty().bind(scene.widthProperty().multiply(0.24));
@@ -295,7 +303,12 @@ public class GameGUI extends Application {
 
         stage.setTitle("Text Explorer UI Template");
         stage.setScene(scene);
-        stage.centerOnScreen();
+        if (smallDisplay) {
+            stage.setFullScreen(true);
+            stage.setFullScreenExitHint("Press ESC to exit fullscreen");
+        } else {
+            stage.centerOnScreen();
+        }
         stage.setAlwaysOnTop(true);
         stage.show();
         Platform.runLater(() -> {
