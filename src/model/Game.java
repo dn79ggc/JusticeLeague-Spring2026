@@ -41,7 +41,7 @@ public class Game {
                 String roomId = row.getString("RoomID");
                 String name = row.getString("Name");
                 String description = row.getString("Description");
-                Room tempRoom = new Room(roomId, name, description);
+                Room tempRoom = new Room(roomId, name, description, false);
                 map.add(tempRoom);
                 rooms.put(roomId, tempRoom);
                 idToIndex.put(roomId, i + 1);
@@ -52,10 +52,10 @@ public class Game {
                 Room room = map.get(i);
                 Row row = table.row(i);
                 java.util.Set<String> seenDestinations = new java.util.HashSet<>();
-                room.addExit("N", parseExit(row.getString("North"), room.getRoomId(), seenDestinations, idToIndex));
-                room.addExit("S", parseExit(row.getString("South"), room.getRoomId(), seenDestinations, idToIndex));
-                room.addExit("E", parseExit(row.getString("East"), room.getRoomId(), seenDestinations, idToIndex));
-                room.addExit("W", parseExit(row.getString("West"), room.getRoomId(), seenDestinations, idToIndex));
+                room.addExit("N", parseExit(row.getString("North")));
+                room.addExit("S", parseExit(row.getString("South")));
+                room.addExit("E", parseExit(row.getString("East")));
+                room.addExit("W", parseExit(row.getString("West")));
             }
 
             buildRoomCoordinates();
@@ -186,19 +186,11 @@ public class Game {
         }
     }
 
-    private int parseExit(String roomId, String currentRoomId, java.util.Set<String> seenDestinations,
-            Map<String, Integer> idToIndex) {
-        if (roomId == null || roomId.isBlank() || roomId.equalsIgnoreCase("null")) {
-            return 0;
+    private String parseExit(String targetRoomId) {
+        if (targetRoomId == null || targetRoomId.isBlank() || targetRoomId.equalsIgnoreCase("null")) {
+            return null; // Return null so the Room knows there is no exit
         }
-        if (roomId.equals(currentRoomId)) {
-            return 0;
-        }
-        if (seenDestinations.contains(roomId)) {
-            return 0;
-        }
-        seenDestinations.add(roomId);
-        return idToIndex.getOrDefault(roomId, 0);
+        return targetRoomId.trim();
     }
 
     private boolean parseBoolean(String raw, boolean fallback) {
@@ -306,20 +298,29 @@ public class Game {
                 continue;
             }
 
-            for (int d = 0; d < DIRECTION_OFFSETS.length; d++) {
-                int destination = room.getExit(d);
-                if (destination <= 0) {
+            String[] directions = {"N", "E", "S", "W"}; // Matches the order of DIRECTION_OFFSETS
+
+            for (int d = 0; d < directions.length; d++) {
+                // 1. Get the target Room ID using the String direction
+                String destinationId = room.getExit(directions[d]);
+
+                // 2. If it's null, there is no exit. Skip.
+                if (destinationId == null) {
                     continue;
                 }
-                Room neighbor = getRoomByNumber(destination);
+
+                // 3. Fetch the actual Room object from your HashMap
+                Room neighbor = rooms.get(destinationId);
                 if (neighbor == null) {
                     continue;
                 }
+
                 String neighborId = neighbor.getRoomId();
                 if (roomCoordinates.containsKey(neighborId)) {
                     continue;
                 }
 
+                // (Keep your existing coordinate math here)
                 int[] desiredCoords = new int[] { coords[0] + DIRECTION_OFFSETS[d][0],
                         coords[1] + DIRECTION_OFFSETS[d][1] };
                 if (isCoordinateTaken(desiredCoords[0], desiredCoords[1])) {
