@@ -80,6 +80,17 @@ public class CombatSystem {
         view.displayMessage("The " + activeMonster.getName() + " attacks before you can react!",
                 GameView.MessageType.SYSTEM);
         executeMonsterTurn(player, activeMonster);
+
+        if (!inCombat || activeMonster == null || combatRoom == null) {
+            return;
+        }
+
+        if (checkCombatEnd(player, activeMonster, combatRoom)) {
+            return;
+        }
+
+        view.setCombatActionsEnabled(true);
+        view.displayMessage("--- Your turn ---", GameView.MessageType.SEPARATOR);
     }
 
     public void executeCombatCycle(String action, Player player) {

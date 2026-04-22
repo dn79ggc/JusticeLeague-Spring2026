@@ -1,6 +1,7 @@
 package view;
 
 import controller.CombatSystem;
+import javafx.beans.binding.Bindings;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.HPos;
@@ -188,11 +189,26 @@ public class GameGUI extends Application {
         root.setPadding(new Insets(10));
         root.setStyle("-fx-background-color: #111827;");
 
-        root.setLeft(createLeftColumn());
-        root.setCenter(createCenterColumn());
-        root.setRight(createRightColumn());
+        VBox leftColumn = createLeftColumn();
+        VBox center = createCenterColumn();
+        VBox rightColumn = createRightColumn();
 
-        Scene scene = new Scene(root, 1240, 760, Color.web("#111827"));
+        root.setLeft(leftColumn);
+        root.setCenter(center);
+        root.setRight(rightColumn);
+
+        Scene scene = new Scene(root, 1260, 920, Color.web("#111827"));
+        stage.setMinWidth(1080);
+        stage.setMinHeight(780);
+
+        leftColumn.prefWidthProperty().bind(scene.widthProperty().multiply(0.30));
+        leftColumn.minWidthProperty().bind(scene.widthProperty().multiply(0.24));
+        rightColumn.prefWidthProperty().bind(scene.widthProperty().multiply(0.22));
+        rightColumn.minWidthProperty().bind(scene.widthProperty().multiply(0.18));
+        center.prefWidthProperty().bind(
+                scene.widthProperty().subtract(leftColumn.prefWidthProperty()).subtract(rightColumn.prefWidthProperty())
+                        .subtract(64));
+        center.maxWidthProperty().bind(center.prefWidthProperty());
         scene.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.F5 && btnSaveMenu != null && isNodeVisible(btnSaveMenu)) {
                 btnSaveMenu.fire();
@@ -279,7 +295,14 @@ public class GameGUI extends Application {
 
         stage.setTitle("Text Explorer UI Template");
         stage.setScene(scene);
+        stage.centerOnScreen();
+        stage.setAlwaysOnTop(true);
         stage.show();
+        Platform.runLater(() -> {
+            stage.toFront();
+            stage.requestFocus();
+            stage.setAlwaysOnTop(false);
+        });
 
         updatePlayerInfo();
         updateRoomInfo();
@@ -289,7 +312,8 @@ public class GameGUI extends Application {
 
     private VBox createLeftColumn() {
         VBox left = new VBox(12);
-        left.setPrefWidth(360);
+        left.setPrefWidth(340);
+        left.setMinWidth(280);
         left.setPadding(new Insets(0, 8, 0, 0));
 
         VBox playerInfoSection = createSectionBox("Player Information", createPlayerInfoSection());
@@ -305,9 +329,12 @@ public class GameGUI extends Application {
 
         ScrollPane scrollPane = new ScrollPane(left);
         scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-control-inner-background: transparent;");
         VBox wrapper = new VBox(scrollPane);
-        wrapper.setPrefWidth(360);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        wrapper.setPrefWidth(340);
+        wrapper.setMinWidth(280);
         return wrapper;
     }
 
@@ -315,8 +342,9 @@ public class GameGUI extends Application {
         centerColumn = new VBox(12);
         centerColumn.setPadding(new Insets(0, 12, 0, 12));
         centerColumn.setAlignment(Pos.TOP_CENTER);
-        centerColumn.setPrefWidth(500);
-        centerColumn.setMaxWidth(560);
+        centerColumn.setFillWidth(true);
+        centerColumn.setPrefWidth(520);
+        centerColumn.setMinWidth(360);
 
         outputArea = new TextArea();
         outputArea.setText(
@@ -325,10 +353,13 @@ public class GameGUI extends Application {
         outputArea.setEditable(false);
         outputArea.setStyle(
                 "-fx-control-inner-background: #1f2937; -fx-text-fill: #e5e7eb; -fx-highlight-fill: #2563eb; -fx-highlight-text-fill: white;");
-        outputArea.setPrefHeight(470);
+        outputArea.setMinHeight(220);
+        outputArea.setMaxWidth(Double.MAX_VALUE);
+        outputArea.prefHeightProperty().bind(Bindings.max(220.0, centerColumn.heightProperty().subtract(280.0)));
 
         StackPane statePanels = new StackPane();
-        statePanels.setPrefHeight(260);
+        statePanels.setPrefHeight(210);
+        statePanels.setMinHeight(190);
         statePanels.setMaxWidth(Double.MAX_VALUE);
         statePanels.setStyle(
                 "-fx-background-color: #111827; -fx-border-color: #374151; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-radius: 8;");
@@ -356,7 +387,8 @@ public class GameGUI extends Application {
 
     private VBox createRightColumn() {
         VBox rightColumn = new VBox(12);
-        rightColumn.setPrefWidth(290);
+        rightColumn.setPrefWidth(280);
+        rightColumn.setMinWidth(220);
 
         Label mapTitle = new Label("Map Preview");
         mapTitle.setFont(Font.font(UI_FONT, FontWeight.BOLD, 18));
@@ -375,6 +407,8 @@ public class GameGUI extends Application {
                 "Current location and visited rooms are shown on the map. Click a room to view details.");
         mapHint.setTextFill(Color.web("#9ca3af"));
         mapHint.setWrapText(true);
+        mapHint.setMaxWidth(Double.MAX_VALUE);
+        mapHint.prefWidthProperty().bind(rightColumn.widthProperty().subtract(8));
 
         VBox inventorySection = createSectionBox("Inventory", createInventorySection());
 
@@ -740,9 +774,14 @@ public class GameGUI extends Application {
     }
 
     private VBox createMainMenuPanel() {
-        VBox box = new VBox(14);
-        box.setAlignment(Pos.CENTER);
-        box.setPadding(new Insets(18));
+        VBox box = new VBox();
+        box.setFillWidth(true);
+        box.setStyle("-fx-background-color: transparent;");
+
+        VBox content = new VBox(14);
+        content.setAlignment(Pos.TOP_CENTER);
+        content.setPadding(new Insets(18));
+        content.setStyle("-fx-background-color: #111827;");
 
         btnNewGame = new Button("New Game [1]");
         btnLoadGame = new Button("Load Game [2]");
@@ -813,8 +852,17 @@ public class GameGUI extends Application {
         monsterTestGrid.add(btnTestM07, 1, 2);
         monsterTestGrid.add(btnTestM08, 0, 3);
 
-        box.getChildren().addAll(btnNewGame, btnLoadGame, btnQuitMainMenu, new Separator(), lblTestHeader,
+        content.getChildren().addAll(btnNewGame, btnLoadGame, btnQuitMainMenu, new Separator(), lblTestHeader,
                 puzzleTestGrid, new Separator(), lblMonsterTestHeader, monsterTestGrid);
+
+        ScrollPane menuScrollPane = new ScrollPane(content);
+        menuScrollPane.setFitToWidth(true);
+        menuScrollPane.setPannable(true);
+        menuScrollPane.setStyle(
+                "-fx-background: transparent; -fx-background-color: #111827; -fx-control-inner-background: #111827; -fx-padding: 0;");
+        VBox.setVgrow(menuScrollPane, Priority.ALWAYS);
+
+        box.getChildren().add(menuScrollPane);
         return box;
     }
 
