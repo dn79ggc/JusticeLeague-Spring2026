@@ -389,8 +389,8 @@ public class CombatSystem {
 
         player.takeDamage(finalDamage);
         view.displayMessage(monster.getName() + " uses " + name + "! You take " + finalDamage + " damage! HP: "
-                + player.getCurrentHp() + " / " + player.getMaxHp(), GameView.MessageType.DAMAGE);
-        view.updatePlayerStats(player.getCurrentHp(), player.getMaxHp(), player.getAttackValue(),
+            + player.getCurrentHp() + " / " + player.getMaxHP(), GameView.MessageType.DAMAGE);
+        view.updatePlayerStats(player.getCurrentHp(), player.getMaxHP(), player.getAttackValue(),
                 player.getDefenseValue());
 
         if (statusEffect != EffectType.NONE && effectChance > 0.0 && rng.nextDouble() < effectChance) {
@@ -400,7 +400,7 @@ public class CombatSystem {
 
     private int calculateMonsterDamage(Player player, double damagePercent, double damageMultiplier,
             double defendMultiplier) {
-        int baseDamage = (int) Math.round(player.getMaxHp() * damagePercent);
+        int baseDamage = (int) Math.round(player.getMaxHP() * damagePercent);
         int variance = rng.nextInt(DAMAGE_VARIANCE * 2 + 1) - DAMAGE_VARIANCE;
         int variedDamage = Math.max(0, baseDamage + variance);
         return (int) Math.round(variedDamage * damageMultiplier * defendMultiplier);
@@ -492,7 +492,7 @@ public class CombatSystem {
         if (healAmount > 0) {
             player.heal(healAmount);
             view.displayMessage("You use " + selected.getName() + " and recover " + healAmount + " HP. HP: "
-                    + player.getCurrentHp() + " / " + player.getMaxHp(), GameView.MessageType.HEAL);
+                    + player.getCurrentHp() + " / " + player.getMaxHP(), GameView.MessageType.HEAL);
         }
 
         if (selected.getDefEffect() > 0) {
