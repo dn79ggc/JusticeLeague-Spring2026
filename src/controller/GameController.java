@@ -106,7 +106,7 @@ public class GameController {
         }
 
         if (puzzleActive) {
-            return handlePuzzleInput(input, player, view, currentRoom);
+            return handlePuzzleInput(input, player, game, view, currentRoom);
         }
 
         if (combatSystem != null && combatSystem.isInCombat()) {
@@ -383,7 +383,7 @@ public class GameController {
                 activePuzzle.getAttempts(), activePuzzle.hasHint());
     }
 
-    private boolean handlePuzzleInput(String input, Player player, GameView view, Room currentRoom) {
+    private boolean handlePuzzleInput(String input, Player player, Game game, GameView view, Room currentRoom) {
         if (input.equalsIgnoreCase("hint")) {
             view.showPuzzleHint(activePuzzle.getHint());
             return false;
@@ -393,6 +393,12 @@ public class GameController {
         switch (result) {
             case CORRECT -> {
                 view.showPuzzleSolved(activePuzzle.getSuccessMessage());
+                // register solved puzzle in game registry so it persists across saves
+                try {
+                    if (game != null && activePuzzle != null)
+                        game.addSolvedPuzzle(activePuzzle.getId());
+                } catch (Exception ignored) {
+                }
                 if ("Front Gate Key".equalsIgnoreCase(activePuzzle.getName()) && !player.hasKeyItem("Front Gate Key")) {
                     player.addToInventory(new KeyItem("Front Gate Key", "GH-01"));
                     view.showMessage("You obtained the Front Gate Key.\n");

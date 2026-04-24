@@ -6,8 +6,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import tech.tablesaw.api.Row;
@@ -29,6 +31,21 @@ public class Game {
     private int maxCol = 0;
 
     private Map<String, Monster> monstersById = new HashMap<>();
+    private Set<String> solvedPuzzles = new LinkedHashSet<>();
+
+    public void addSolvedPuzzle(String puzzleId) {
+        if (puzzleId == null || puzzleId.isBlank())
+            return;
+        solvedPuzzles.add(puzzleId);
+    }
+
+    public boolean isPuzzleSolved(String puzzleId) {
+        return puzzleId != null && solvedPuzzles.contains(puzzleId);
+    }
+
+    public Set<String> getSolvedPuzzles() {
+        return Set.copyOf(solvedPuzzles);
+    }
 
     // Loads rooms from the given filename inside the data/ folder.
     // Returns true on success, false if the file is not found.
@@ -155,6 +172,11 @@ public class Game {
                         consumableStatsByItemId);
                 Room room = getRoomById(roomId);
                 if (item != null && room != null) {
+                    // record the base ItemID on the runtime instance for save/load mapping
+                    try {
+                        item.setOriginalItemId(itemId);
+                    } catch (Exception ignored) {
+                    }
                     room.addItem(item);
                 }
             }

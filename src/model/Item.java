@@ -7,6 +7,8 @@ public class Item {
     private String description;
     private String benefit;
     private String weakness;
+    // Optional runtime marker for the base ItemID this instance was created from
+    private String originalItemId;
 
     public Item() {
         this.name = "Item";
@@ -74,5 +76,13 @@ public class Item {
 
     public void use(Player player) {
         // Default item does nothing
+    }
+
+    public String getOriginalItemId() {
+        return originalItemId;
+    }
+
+    public void setOriginalItemId(String id) {
+        this.originalItemId = id;
     }
 }

@@ -143,17 +143,17 @@ public class Player {
             return player;
         }
         try {
-            Table table = Table.read().csv(filePath);
-            if (table.rowCount() == 0) {
+            java.util.List<java.util.Map<String, String>> rows = SaveManager.readCsvAsStringMaps(filePath);
+            if (rows == null || rows.isEmpty()) {
                 return player;
             }
-            Row row = table.row(0);
-            String playerName = row.getString("Name");
-            String roomId = row.getString("CurrentRoomID");
-            int currentHP = parseInt(row.getString("CurrentHP"), 100);
-            int maxHP = parseInt(row.getString("MaxHP"), 100);
-            int baseAttack = parseInt(row.getString("BaseAttack"), 10);
-            int baseDefense = parseInt(row.getString("BaseDefense"), 5);
+            java.util.Map<String, String> row = rows.get(0);
+            String playerName = row.getOrDefault("Name", "Explorer");
+            String roomId = row.getOrDefault("CurrentRoomID", "");
+            int currentHP = parseInt(row.getOrDefault("CurrentHP", "100"), 100);
+            int maxHP = parseInt(row.getOrDefault("MaxHP", "100"), 100);
+            int baseAttack = parseInt(row.getOrDefault("BaseAttack", "10"), 10);
+            int baseDefense = parseInt(row.getOrDefault("BaseDefense", "5"), 5);
 
             int roomNumber = game.getRoomNumberById(roomId);
             if (roomNumber == 0) {

@@ -1,0 +1,64 @@
+Saved items (from save.json/items.csv):
+ - I01 | Rusting Armor | savedRoom=GY-01 pickedUp=false equipped=false
+ - I02 | Police Armor | savedRoom=TH-02 pickedUp=false equipped=false
+ - I03 | Military Armor | savedRoom=GS-03 pickedUp=false equipped=false
+ - I04 | Health Potion | savedRoom=GH-03 pickedUp=false equipped=false
+ - I05 | Health Potion | savedRoom=GH-02 pickedUp=false equipped=false
+ - I06 | Jack Daniel’s | savedRoom=SL-01 pickedUp=false equipped=false
+ - I07 | Hearty Meal | savedRoom=SL-02 pickedUp=false equipped=false
+ - I08 | Health Potion | savedRoom=TH-01 pickedUp=false equipped=false
+ - I09 | Prison Key | savedRoom=RD-03 pickedUp=false equipped=false
+ - I10 | Poker Chips | savedRoom=GH-03 pickedUp=false equipped=false
+ - I11 | Office Keys | savedRoom=TH-03 pickedUp=false equipped=false
+ - I12 | Crude Dagger | savedRoom=CH-04 pickedUp=false equipped=false
+ - I13 | Steel Sword | savedRoom=SL-04 pickedUp=false equipped=true
+ - I14 | Assassin's Dagger | savedRoom=GS-04 pickedUp=false equipped=false
+ - I15 | Crossbow | savedRoom=GH-04 pickedUp=false equipped=false
+ - I16 | ‘Old Reliable’ Shotgun | savedRoom=GS-02 pickedUp=false equipped=false
+
+Runtime room item locations after load:
+Room CH-04 items:
+ - Crude Dagger (orig=I12)
+Room GH-02 items:
+ - Health Potion (orig=I05)
+Room GH-03 items:
+ - Health Potion (orig=I04)
+ - Poker Chips (orig=I10)
+Room GH-04 items:
+ - Crossbow (orig=I15)
+Room SL-01 items:
+ - Jack Daniel’s (orig=I06)
+Room SL-02 items:
+ - Hearty Meal (orig=I07)
+Room SL-04 items:
+ - Steel Sword (orig=null)
+Room GS-02 items:
+ - ‘Old Reliable’ Shotgun (orig=I16)
+Room GS-03 items:
+ - Military Armor (orig=I03)
+Room GS-04 items:
+ - Assassin's Dagger (orig=I14)
+Room GY-01 items:
+ - Rusting Armor (orig=I01)
+Room TH-01 items:
+ - Health Potion (orig=I08)
+Room TH-02 items:
+ - Police Armor (orig=I02)
+Room TH-03 items:
+ - Office Keys (orig=I11)
+Room RD-03 items:
+ - Prison Key (orig=I09)
+
+P01 solved=false
+P02 solved=false
+P03 solved=false
+P05 solved=false
+P06 solved=false
+P07 solved=false
+P08 solved=false
+P09 solved=false
+P10 solved=false
+P11 solved=false
+P12 solved=true
+P13 solved=true
+P14 solved=true

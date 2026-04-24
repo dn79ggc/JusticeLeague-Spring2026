@@ -48,6 +48,11 @@ public abstract class Puzzle {
         this.wrongAnswers = new ArrayList<>();
     }
 
+    /** Return the puzzle identifier from the definition CSV. */
+    public String getId() {
+        return id;
+    }
+
     public String getName() {
         return name;
     }

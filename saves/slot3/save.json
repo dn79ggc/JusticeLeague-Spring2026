@@ -1,0 +1,371 @@
+{
+  "player": {
+    "name": "Explorer",
+    "currentRoomId": "GY-01",
+    "currentHP": 86,
+    "maxHP": 100,
+    "baseAttack": 10,
+    "baseDefense": 5,
+    "currentAttack": 15,
+    "currentDefense": 15
+  },
+  "items": [
+    {
+      "itemId": "I01",
+      "name": "Rusting Armor",
+      "roomId": "GY-01",
+      "pickedUp": false,
+      "equipped": true,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I02",
+      "name": "Police Armor",
+      "roomId": "TH-02",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I03",
+      "name": "Military Armor",
+      "roomId": "GS-03",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I04",
+      "name": "Health Potion",
+      "roomId": "CH-03",
+      "pickedUp": true,
+      "equipped": false,
+      "used": false,
+      "count": 1
+    },
+    {
+      "itemId": "I05",
+      "name": "Health Potion",
+      "roomId": "GH-02",
+      "pickedUp": true,
+      "equipped": false,
+      "used": false,
+      "count": 1
+    },
+    {
+      "itemId": "I06",
+      "name": "Jack Daniel’s",
+      "roomId": "SL-01",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I07",
+      "name": "Hearty Meal",
+      "roomId": "SL-02",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I08",
+      "name": "Health Potion",
+      "roomId": "TH-01",
+      "pickedUp": true,
+      "equipped": false,
+      "used": false,
+      "count": 1
+    },
+    {
+      "itemId": "I09",
+      "name": "Prison Key",
+      "roomId": "RD-03",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I10",
+      "name": "Poker Chips",
+      "roomId": "GH-03",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I11",
+      "name": "Office Keys",
+      "roomId": "TH-03",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I12",
+      "name": "Crude Dagger",
+      "roomId": "CH-04",
+      "pickedUp": false,
+      "equipped": true,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I13",
+      "name": "Steel Sword",
+      "roomId": "SL-04",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I14",
+      "name": "Assassin\u0027s Dagger",
+      "roomId": "GS-04",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I15",
+      "name": "Crossbow",
+      "roomId": "GH-04",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    },
+    {
+      "itemId": "I16",
+      "name": "‘Old Reliable’ Shotgun",
+      "roomId": "GS-02",
+      "pickedUp": false,
+      "equipped": false,
+      "used": false,
+      "count": 0
+    }
+  ],
+  "monsters": [
+    {
+      "monsterId": "M01",
+      "isAlive": true,
+      "currentRoomId": "GH-03"
+    },
+    {
+      "monsterId": "M02",
+      "isAlive": false,
+      "currentRoomId": "GY-01"
+    },
+    {
+      "monsterId": "M03",
+      "isAlive": false,
+      "currentRoomId": "CH-03"
+    },
+    {
+      "monsterId": "M04",
+      "isAlive": true,
+      "currentRoomId": "SL-01"
+    },
+    {
+      "monsterId": "M05",
+      "isAlive": false,
+      "currentRoomId": "RD-01"
+    },
+    {
+      "monsterId": "M06",
+      "isAlive": true,
+      "currentRoomId": "TH-03"
+    },
+    {
+      "monsterId": "M07",
+      "isAlive": true,
+      "currentRoomId": "GS-01"
+    },
+    {
+      "monsterId": "M08",
+      "isAlive": true,
+      "currentRoomId": "GS-04"
+    }
+  ],
+  "puzzles": [
+    {
+      "puzzleId": "P01",
+      "solved": false
+    },
+    {
+      "puzzleId": "P02",
+      "solved": false
+    },
+    {
+      "puzzleId": "P03",
+      "solved": false
+    },
+    {
+      "puzzleId": "P05",
+      "solved": false
+    },
+    {
+      "puzzleId": "P06",
+      "solved": false
+    },
+    {
+      "puzzleId": "P07",
+      "solved": false
+    },
+    {
+      "puzzleId": "P08",
+      "solved": true
+    },
+    {
+      "puzzleId": "P09",
+      "solved": false
+    },
+    {
+      "puzzleId": "P10",
+      "solved": false
+    },
+    {
+      "puzzleId": "P11",
+      "solved": false
+    },
+    {
+      "puzzleId": "P12",
+      "solved": true
+    },
+    {
+      "puzzleId": "P13",
+      "solved": true
+    },
+    {
+      "puzzleId": "P14",
+      "solved": true
+    }
+  ],
+  "rooms": [
+    {
+      "roomId": "CH-01",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "CH-02",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "CH-03",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "CH-04",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GH-01",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GH-02",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GH-03",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GH-04",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "SL-01",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "SL-02",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "SL-03",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "SL-04",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GS-01",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GS-02",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GS-03",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GS-04",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "GY-01",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "TH-01",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "TH-02",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "TH-03",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "RD-01",
+      "visited": true,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "RD-02",
+      "visited": false,
+      "barricadedTo": "NONE"
+    },
+    {
+      "roomId": "RD-03",
+      "visited": true,
+      "barricadedTo": "NONE"
+    }
+  ]
+}

@@ -1,1 +1,9 @@
 MonsterID,isAlive,currentRoomId
+M01,true,GH-03
+M02,false,GY-01
+M03,false,CH-03
+M04,true,SL-01
+M05,false,RD-01
+M06,true,TH-03
+M07,true,GS-01
+M08,true,GS-04

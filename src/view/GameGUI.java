@@ -1280,8 +1280,7 @@ public class GameGUI extends Application {
             return;
         }
 
-        // Ensure attempts are fresh when the player begins engaging the puzzle
-        puzzle.resetAttempts();
+        // Preserve puzzle attempts across cancels; only final failure resets attempts
 
         puzzleResultLabel.setText("");
         puzzleResultLabel.setVisible(false);
@@ -1431,7 +1430,7 @@ public class GameGUI extends Application {
                     .collect(Collectors.joining(", "));
             details.append("\nItems: ").append(roomItems);
         }
-        if (room.hasPuzzle()) {
+        if (room.hasPuzzle() && (room.getPuzzle() == null || !room.getPuzzle().isSolved())) {
             details.append("\nPuzzle available.");
         }
         if (room.hasMonster() && room.getMonster().isAlive()) {
@@ -1591,9 +1590,6 @@ public class GameGUI extends Application {
         updatePlayerInfo();
         updateRoomInfo();
         updateMapGrid();
-        if (activeSaveSlot > 0) {
-            SaveManager.saveGame(activeSaveSlot, player, game);
-        }
     }
 
     private void useConsumableFromInventory() {
@@ -1618,9 +1614,6 @@ public class GameGUI extends Application {
         if (player.useItem(selected)) {
             int hpAfter = player.getCurrentHP();
             outputText("Used " + selected.getName() + ". HP: " + hpBefore + " -> " + hpAfter);
-            if (activeSaveSlot > 0) {
-                SaveManager.saveGame(activeSaveSlot, player, game);
-            }
         } else {
             outputText("You cannot use that item right now.");
         }
@@ -1657,9 +1650,6 @@ public class GameGUI extends Application {
             player.equipWeapon(weapon);
             player.getInventory().remove(weapon);
             outputText("Equipped weapon: " + weapon.getName());
-            if (activeSaveSlot > 0) {
-                SaveManager.saveGame(activeSaveSlot, player, game);
-            }
         } else if (selected instanceof Armor armor) {
             Armor old = player.getEquippedArmor();
             if (old != null && !player.addToInventory(old)) {
@@ -1669,9 +1659,6 @@ public class GameGUI extends Application {
             player.equipArmor(armor);
             player.getInventory().remove(armor);
             outputText("Equipped armor: " + armor.getName());
-            if (activeSaveSlot > 0) {
-                SaveManager.saveGame(activeSaveSlot, player, game);
-            }
         }
 
         updatePlayerInfo();
@@ -1757,9 +1744,6 @@ public class GameGUI extends Application {
                 if (res.isPresent() && res.get() == ButtonType.OK) {
                     if (player.dropItem(selectedItem)) {
                         outputText("Dropped " + selectedItem.getName() + " into the room.");
-                        if (activeSaveSlot > 0) {
-                            SaveManager.saveGame(activeSaveSlot, player, game);
-                        }
                     } else {
                         outputText("Could not drop that item.");
                     }
@@ -1787,18 +1771,12 @@ public class GameGUI extends Application {
                 if (choice.startsWith("Weapon") && player.getEquippedWeapon() != null) {
                     if (player.unequipWeapon()) {
                         outputText("Unequipped weapon.");
-                        if (activeSaveSlot > 0) {
-                            SaveManager.saveGame(activeSaveSlot, player, game);
-                        }
                     } else {
                         outputText("Cannot unequip weapon (bag may be full).");
                     }
                 } else if (choice.startsWith("Armor") && player.getEquippedArmor() != null) {
                     if (player.unequipArmor()) {
                         outputText("Unequipped armor.");
-                        if (activeSaveSlot > 0) {
-                            SaveManager.saveGame(activeSaveSlot, player, game);
-                        }
                     } else {
                         outputText("Cannot unequip armor (bag may be full).");
                     }
@@ -1810,9 +1788,6 @@ public class GameGUI extends Application {
                     if (player.useItem(selectedItem)) {
                         int hpAfter = player.getCurrentHP();
                         outputText("Used " + selectedItem.getName() + ". HP: " + hpBefore + " -> " + hpAfter);
-                        if (activeSaveSlot > 0) {
-                            SaveManager.saveGame(activeSaveSlot, player, game);
-                        }
                     } else {
                         outputText("You cannot use that item right now.");
                     }
@@ -1828,9 +1803,6 @@ public class GameGUI extends Application {
                     player.equipWeapon(weapon);
                     player.getInventory().remove(weapon);
                     outputText("Equipped weapon: " + weapon.getName());
-                    if (activeSaveSlot > 0) {
-                        SaveManager.saveGame(activeSaveSlot, player, game);
-                    }
                 } else if (selectedItem instanceof Armor armor) {
                     Armor old = player.getEquippedArmor();
                     if (old != null && !player.addToInventory(old)) {
@@ -1840,9 +1812,6 @@ public class GameGUI extends Application {
                     player.equipArmor(armor);
                     player.getInventory().remove(armor);
                     outputText("Equipped armor: " + armor.getName());
-                    if (activeSaveSlot > 0) {
-                        SaveManager.saveGame(activeSaveSlot, player, game);
-                    }
                 }
             }
         }
@@ -1878,9 +1847,6 @@ public class GameGUI extends Application {
             if (player.useItem(selectedItem)) {
                 int hpAfter = player.getCurrentHP();
                 outputText("Used " + selectedItem.getName() + ". HP: " + hpBefore + " -> " + hpAfter);
-                if (activeSaveSlot > 0) {
-                    SaveManager.saveGame(activeSaveSlot, player, game);
-                }
             } else {
                 outputText("You cannot use that item right now.");
             }
@@ -1899,9 +1865,6 @@ public class GameGUI extends Application {
                 player.equipWeapon(weapon);
                 player.getInventory().remove(weapon);
                 outputText("Equipped weapon: " + weapon.getName());
-                if (activeSaveSlot > 0) {
-                    SaveManager.saveGame(activeSaveSlot, player, game);
-                }
             } else if (selectedItem instanceof Armor armor) {
                 Armor old = player.getEquippedArmor();
                 if (old != null && !player.addToInventory(old)) {
@@ -1911,9 +1874,6 @@ public class GameGUI extends Application {
                 player.equipArmor(armor);
                 player.getInventory().remove(armor);
                 outputText("Equipped armor: " + armor.getName());
-                if (activeSaveSlot > 0) {
-                    SaveManager.saveGame(activeSaveSlot, player, game);
-                }
             }
             updatePlayerInfo();
             updateRoomInfo();
@@ -1963,9 +1923,6 @@ public class GameGUI extends Application {
                 updatePlayerInfo();
                 updateRoomInfo();
                 updateMapGrid();
-                if (activeSaveSlot > 0) {
-                    SaveManager.saveGame(activeSaveSlot, player, game);
-                }
             } else {
                 outputText("Could not drop that item.");
             }
@@ -1997,9 +1954,6 @@ public class GameGUI extends Application {
             if (player.unequipWeapon()) {
                 outputText("Unequipped weapon.");
                 updatePlayerInfo();
-                if (activeSaveSlot > 0) {
-                    SaveManager.saveGame(activeSaveSlot, player, game);
-                }
             } else {
                 outputText("Cannot unequip weapon (bag may be full).");
             }
@@ -2007,9 +1961,6 @@ public class GameGUI extends Application {
             if (player.unequipArmor()) {
                 outputText("Unequipped armor.");
                 updatePlayerInfo();
-                if (activeSaveSlot > 0) {
-                    SaveManager.saveGame(activeSaveSlot, player, game);
-                }
             } else {
                 outputText("Cannot unequip armor (bag may be full).");
             }
@@ -2151,6 +2102,13 @@ public class GameGUI extends Application {
             } else if (e.getCode() == KeyCode.ESCAPE) {
                 btnExplorePuzzleText.fire();
             } else if (e.getCode() == KeyCode.ENTER) {
+                // If the text input field has focus, let its own action handler
+                // trigger the submit to avoid double-submission (scene filter
+                // + textfield action both firing). Only fire here when the
+                // input field is not focused.
+                if (puzzleInputField != null && puzzleInputField.isFocused()) {
+                    return;
+                }
                 btnSubmit.fire();
             } else if (activePuzzleType == PuzzleUIType.NUMBER_GUESS
                     || activePuzzleType == PuzzleUIType.RPS
@@ -2229,6 +2187,10 @@ public class GameGUI extends Application {
             return;
         }
         activePuzzle = currentRoom.getPuzzle();
+        if (activePuzzle != null && activePuzzle.isSolved()) {
+            outputText("This puzzle has already been solved.");
+            return;
+        }
         if (activePuzzle == null) {
             outputText("Room has no active puzzle.");
             return;
@@ -2300,6 +2262,12 @@ public class GameGUI extends Application {
                     updatePlayerInfo();
                 }
                 Room currentRoom = game != null ? game.getRoomByNumber(player.getLocation()) : null;
+                // record solved puzzle id in game registry so saves persist puzzle solved state
+                try {
+                    if (game != null && activePuzzle != null)
+                        game.addSolvedPuzzle(activePuzzle.getId());
+                } catch (Exception ignored) {
+                }
                 if (currentRoom != null && currentRoom.hasPuzzle()) {
                     currentRoom.removePuzzle();
                 }

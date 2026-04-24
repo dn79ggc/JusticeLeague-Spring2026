@@ -1,13 +1,13 @@
 ItemID,Name,RoomID,pickedUp,equipped,used,count
-I01,Rusting Armor,GY-01,false,false,false,0
+I01,Rusting Armor,GY-01,true,false,false,1
 I02,Police Armor,TH-02,false,false,false,0
 I03,Military Armor,GS-03,false,false,false,0
-I04,Health Potion,GH-02,false,false,false,0
-I05,Health Potion,GH-02,false,false,false,0
+I04,Health Potion,CH-03,true,false,false,1
+I05,Health Potion,GH-02,true,false,false,1
 I06,Jack Daniel’s,SL-01,false,false,false,0
 I07,Hearty Meal,SL-02,false,false,false,0
-I08,Health Potion,GH-02,false,false,false,0
-I09,Prison Key,RD-03,true,false,false,1
+I08,Health Potion,RD-01,false,false,false,0
+I09,Prison Key,RD-03,false,false,false,0
 I10,Poker Chips,GH-03,false,false,false,0
 I11,Office Keys,TH-03,false,false,false,0
 I12,Crude Dagger,CH-04,false,true,false,0
