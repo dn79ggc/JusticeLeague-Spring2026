@@ -1,12 +1,14 @@
 package controller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 import model.Consumable;
 import model.EffectType;
+import model.FlavorText;
 import model.Game;
 import model.Monster;
 import model.MonsterAbility;
@@ -29,6 +31,7 @@ public class CombatSystem {
     private Monster rootMonster;
     private Monster activeMonster;
     private boolean inCombat;
+    private boolean endingReached;
 
     public enum CombatResult {
         MONSTER_DEAD,
@@ -62,6 +65,10 @@ public class CombatSystem {
         return activeMonster;
     }
 
+    public boolean isEndingReached() {
+        return endingReached;
+    }
+
     public void startCombat(Player player, Monster monster, Room room) {
         combatRoom = room;
         rootMonster = monster;
@@ -74,8 +81,9 @@ public class CombatSystem {
 
         view.showCombatStart(activeMonster.getName(), activeMonster.getLevel());
         view.updateMonsterStats(activeMonster.getName(), activeMonster.getCurrentHp(), activeMonster.getMaxHp());
-        view.displayMessage("You have encountered " + activeMonster.getName() + "!", GameView.MessageType.SYSTEM);
-        view.displayMessage(activeMonster.getDescription(), GameView.MessageType.NARRATION);
+        view.displayMessage(FlavorText.get("COMBAT_FIRST", "You have encountered " + activeMonster.getName() + "!"),
+                GameView.MessageType.NARRATION);
+        view.displayMessage(getMonsterStartFlavor(activeMonster), GameView.MessageType.NARRATION);
         view.displayMessage("--- Combat begins ---", GameView.MessageType.SEPARATOR);
 
         view.displayMessage("The " + activeMonster.getName() + " attacks before you can react!",
@@ -270,12 +278,8 @@ public class CombatSystem {
             available.removeIf(a -> "Flee".equalsIgnoreCase(a.getName()));
         }
         if (monster.isType("Poltergeist")) {
-            // Barricade is only available once HP drops to 50% or below; once used, never
-            // again.
-            boolean aboveHalfHp = monster.getCurrentHp() > monster.getMaxHp() * 0.50;
-            if (aboveHalfHp || monster.hasBarricaded()) {
-                available.removeIf(a -> "Barricade".equalsIgnoreCase(a.getName()));
-            }
+            // Keep combat outcome deterministic; do not allow random barricade-flee exits.
+            available.removeIf(a -> "Barricade".equalsIgnoreCase(a.getName()));
         }
 
         if (available.isEmpty()) {
@@ -336,8 +340,11 @@ public class CombatSystem {
                 combatRoom.barricadeExit(direction);
             }
             monster.setHasBarricaded(true);
-            view.displayMessage("The Poltergeist FLEES through the " + (direction == null ? "nearest" : direction)
-                    + " exit and barricades it shut!", GameView.MessageType.SYSTEM);
+            Map<String, String> params = new HashMap<>();
+            params.put("direction", direction == null ? "nearest" : direction);
+            view.displayMessage(
+                    FlavorText.get("BARRICADE_FLEE", "The Poltergeist FLEES and barricades an exit.", params),
+                    GameView.MessageType.SYSTEM);
             endCombat(player, monster, CombatResult.PLAYER_WIN_BARRICADE);
             return;
         }
@@ -389,18 +396,18 @@ public class CombatSystem {
 
         player.takeDamage(finalDamage);
         view.displayMessage(monster.getName() + " uses " + name + "! You take " + finalDamage + " damage! HP: "
-            + player.getCurrentHp() + " / " + player.getMaxHP(), GameView.MessageType.DAMAGE);
+                + player.getCurrentHp() + " / " + player.getMaxHP(), GameView.MessageType.DAMAGE);
         view.updatePlayerStats(player.getCurrentHp(), player.getMaxHP(), player.getAttackValue(),
                 player.getDefenseValue());
 
-        if (statusEffect != EffectType.NONE && effectChance > 0.0 && rng.nextDouble() < effectChance) {
-            applyStatusEffect(statusEffect, player);
-        }
+        // Keep combat progression consistent by avoiding hard-lock status chains from
+        // monster attacks.
     }
 
     private int calculateMonsterDamage(Player player, double damagePercent, double damageMultiplier,
             double defendMultiplier) {
-        int baseDamage = (int) Math.round(player.getMaxHP() * damagePercent);
+        // Scale percent-based monster damage so long playthroughs remain survivable.
+        int baseDamage = (int) Math.round(player.getMaxHP() * damagePercent * 0.35);
         int variance = rng.nextInt(DAMAGE_VARIANCE * 2 + 1) - DAMAGE_VARIANCE;
         int variedDamage = Math.max(0, baseDamage + variance);
         return (int) Math.round(variedDamage * damageMultiplier * defendMultiplier);
@@ -449,7 +456,10 @@ public class CombatSystem {
             effect.tick();
             if (effect.isExpired()) {
                 toRemove.add(effect);
-                view.displayMessage(effect.getName() + " has worn off.", GameView.MessageType.SYSTEM);
+                Map<String, String> params = new HashMap<>();
+                params.put("effectName", effect.getName());
+                view.displayMessage(FlavorText.get("STATUS_EXPIRE", effect.getName() + " has worn off.", params),
+                        GameView.MessageType.SYSTEM);
             }
         }
         for (StatusEffect effect : toRemove) {
@@ -663,7 +673,7 @@ public class CombatSystem {
         switch (result) {
             case MONSTER_DEAD -> {
                 combatRoom.removeMonster();
-                view.displayMessage("The " + monster.getName() + " is defeated!", GameView.MessageType.SYSTEM);
+                view.displayMessage(getMonsterDeathFlavor(monster), GameView.MessageType.NARRATION);
                 view.displayMessage("--- Combat over ---", GameView.MessageType.SEPARATOR);
                 checkCleanseWinCondition();
                 view.displayMessage(player.getCurrentRoom() != null ? player.getCurrentRoom().getFullDescription()
@@ -681,7 +691,10 @@ public class CombatSystem {
             }
             case PLAYER_FLED -> view.displayMessage("--- Combat over (you fled) ---", GameView.MessageType.SEPARATOR);
             case PLAYER_DEAD -> {
-                view.displayMessage("You have been defeated...", GameView.MessageType.DAMAGE);
+                view.displayMessage(FlavorText.get("DEATH_CAUSE_COMBAT", "You have been defeated..."),
+                        GameView.MessageType.DAMAGE);
+                view.displayMessage(FlavorText.get("DEATH_HEADER", "--- YOU HAVE FALLEN ---"),
+                        GameView.MessageType.SYSTEM);
                 view.showGameOverScreen();
             }
         }
@@ -693,6 +706,9 @@ public class CombatSystem {
     }
 
     public void checkCleanseWinCondition() {
+        if (endingReached) {
+            return;
+        }
         Map<String, Room> roomGraph = game.getRoomGraph();
         for (String roomId : List.of("GH-03", "GS-01", "TH-03", "GS-04")) {
             Room room = roomGraph.get(roomId);
@@ -706,18 +722,60 @@ public class CombatSystem {
             }
         }
 
-        view.displayMessage("The last of the town's tormentors has fallen.", GameView.MessageType.NARRATION);
-        view.displayMessage("--- CLEANSE ENDING ---", GameView.MessageType.SYSTEM);
+        view.displayMessage(FlavorText.get("CLEANSE_1", "The last of the town's tormentors has fallen."),
+                GameView.MessageType.NARRATION);
+        view.displayMessage(FlavorText.get("CLEANSE_2", "The shadows recede and the cold lifts."),
+                GameView.MessageType.NARRATION);
+        view.displayMessage(FlavorText.get("CLEANSE_3", "The town falls silent."),
+                GameView.MessageType.NARRATION);
+        view.displayMessage(FlavorText.get("CLEANSE_WIN", "--- CLEANSE ENDING ---"), GameView.MessageType.SYSTEM);
+        endingReached = true;
         view.showWinScreen(GameView.WinType.CLEANSE);
     }
 
-    public void checkEscapeWinCondition(Player player) {
+    public boolean checkEscapeWinCondition(Player player) {
+        if (endingReached) {
+            return true;
+        }
         Room current = player.getCurrentRoom();
         if (current != null && "GH-01".equals(current.getRoomId()) && player.hasKeyItem("Front Gate Key")) {
-            view.displayMessage("The gate creaks open. You step through into the cold night air.",
+            view.displayMessage(FlavorText.get("ESCAPE_1", "You use the Front Gate Key."),
                     GameView.MessageType.NARRATION);
-            view.displayMessage("--- ESCAPE ENDING ---", GameView.MessageType.SYSTEM);
+            view.displayMessage(FlavorText.get("ESCAPE_2", "The gate swings open."),
+                    GameView.MessageType.NARRATION);
+            view.displayMessage(FlavorText.get("ESCAPE_3", "Cold air rushes in."),
+                    GameView.MessageType.NARRATION);
+            view.displayMessage(FlavorText.get("ESCAPE_4", "You step through and do not look back."),
+                    GameView.MessageType.NARRATION);
+            view.displayMessage(FlavorText.get("ESCAPE_WIN", "--- YOU ESCAPED ---"), GameView.MessageType.SYSTEM);
+            endingReached = true;
             view.showWinScreen(GameView.WinType.ESCAPE);
+            return true;
         }
+        return false;
+    }
+
+    private String getMonsterStartFlavor(Monster monster) {
+        if (monster == null) {
+            return "";
+        }
+        if (monster.getCombatStartText() != null && !monster.getCombatStartText().isBlank()) {
+            return monster.getCombatStartText();
+        }
+        Map<String, String> params = new HashMap<>();
+        params.put("monsterName", monster.getName());
+        return FlavorText.get("MONSTER_START_GENERIC", monster.getDescription(), params);
+    }
+
+    private String getMonsterDeathFlavor(Monster monster) {
+        if (monster == null) {
+            return FlavorText.get("MONSTER_DEATH_GENERIC", "A monster has fallen.");
+        }
+        if (monster.getCombatDeathText() != null && !monster.getCombatDeathText().isBlank()) {
+            return monster.getCombatDeathText();
+        }
+        Map<String, String> params = new HashMap<>();
+        params.put("monsterName", monster.getName());
+        return FlavorText.get("MONSTER_DEATH_GENERIC", "The {monsterName} is defeated!", params);
     }
 }

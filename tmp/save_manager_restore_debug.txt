@@ -1,0 +1,23 @@
+RESTORE START: saves/slot1/items.csv
+absPath=C:\Users\Zubha\Documents\GitHub\JusticeLeague-Spring2026\saves\slot1\items.csv
+file.exists()=true
+files.exists()=true
+states.count=16
+itemNamesById.count=16
+available.keys=14
+avail[health potion]=3
+avail[crude dagger]=1
+avail[poker chips]=1
+avail[crossbow]=1
+avail[jack daniel’s]=1
+avail[hearty meal]=1
+avail[steel sword]=1
+avail[‘old reliable’ shotgun]=1
+avail[military armor]=1
+avail[assassin's dagger]=1
+avail[rusting armor]=1
+avail[police armor]=1
+avail[office keys]=1
+avail[prison key]=1
+RESTORE: itemId=I04 name=Health Potion room=CH-03
+RESTORE: itemId=I05 name=Health Potion room=GH-02

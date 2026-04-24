@@ -10,6 +10,8 @@ public class Monster {
     private String monsterClass;
     private String name;
     private String description;
+    private String combatStartText;
+    private String combatDeathText;
     private int level;
     private int speed;
     private int maxHp;
@@ -61,6 +63,8 @@ public class Monster {
         this.weakType = weakType == null ? "NONE" : weakType;
         this.weakModifier = weakModifier;
         this.description = description == null ? "" : description;
+        this.combatStartText = "";
+        this.combatDeathText = "";
         this.alive = true;
         this.abilities = new ArrayList<>();
         this.specialFlags = new HashMap<>();
@@ -96,6 +100,22 @@ public class Monster {
 
     public String getMonsterId() {
         return monsterId;
+    }
+
+    public String getCombatStartText() {
+        return combatStartText;
+    }
+
+    public void setCombatStartText(String combatStartText) {
+        this.combatStartText = combatStartText == null ? "" : combatStartText;
+    }
+
+    public String getCombatDeathText() {
+        return combatDeathText;
+    }
+
+    public void setCombatDeathText(String combatDeathText) {
+        this.combatDeathText = combatDeathText == null ? "" : combatDeathText;
     }
 
     public String getRoomId() {
@@ -136,6 +156,8 @@ public class Monster {
         for (Map.Entry<String, Double> entry : specialFlags.entrySet()) {
             clone.setSpecialFlag(entry.getKey(), entry.getValue());
         }
+        clone.setCombatStartText(combatStartText);
+        clone.setCombatDeathText(combatDeathText);
         return clone;
     }
 
@@ -149,6 +171,8 @@ public class Monster {
         for (Map.Entry<String, Double> entry : specialFlags.entrySet()) {
             clone.setSpecialFlag(entry.getKey(), entry.getValue());
         }
+        clone.setCombatStartText(combatStartText);
+        clone.setCombatDeathText(combatDeathText);
         clone.reset();
         return clone;
     }

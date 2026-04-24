@@ -80,3 +80,9 @@ tasks.register('runGUI') {
     description = 'Alias for runGui'
     dependsOn tasks.named('runGui')
 }
+
+tasks.register('rungui') {
+    group = 'application'
+    description = 'Lowercase alias for runGui'
+    dependsOn tasks.named('runGui')
+}

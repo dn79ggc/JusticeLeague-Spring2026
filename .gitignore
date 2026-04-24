@@ -3,6 +3,8 @@ bin/**/*.class
 
 # Log files
 *.log
+test_runs/
+*.meta.txt
 
 # IDE files
 .idea/

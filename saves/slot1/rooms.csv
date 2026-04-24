@@ -1,5 +1,9 @@
 RoomID,visited,barricadedTo
-GH-01,true,NONE
+CH-01,false,NONE
+CH-02,false,NONE
+CH-03,false,NONE
+CH-04,false,NONE
+GH-01,false,NONE
 GH-02,false,NONE
 GH-03,false,NONE
 GH-04,false,NONE
@@ -11,10 +15,6 @@ GS-01,false,NONE
 GS-02,false,NONE
 GS-03,false,NONE
 GS-04,false,NONE
-CH-01,false,NONE
-CH-02,false,NONE
-CH-03,false,NONE
-CH-04,false,NONE
 GY-01,false,NONE
 TH-01,false,NONE
 TH-02,false,NONE

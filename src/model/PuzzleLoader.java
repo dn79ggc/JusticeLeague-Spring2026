@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
@@ -118,7 +119,7 @@ public class PuzzleLoader {
         if (extraData == null || extraData.isBlank()) {
             return new ArrayList<>();
         }
-        return Arrays.stream(extraData.split(separator, -1)).map(String::trim).toList();
+        return Arrays.stream(extraData.split(Pattern.quote(separator), -1)).map(String::trim).toList();
     }
 
     private static int getIntValue(Row row, String columnName, int fallback) {

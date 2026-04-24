@@ -1,3 +1,8 @@
+picked=2
+stackBefore=2
+saved=true
+-- saved slot item states --
+-- raw items.csv --
 ItemID,pickedUp,equipped,used
 I01,false,false,false
 I02,false,false,false
@@ -15,3 +20,5 @@ I13,false,false,false
 I14,false,false,false
 I15,false,false,false
 I16,false,false,false
+loadedStack=2
+loadedInventory=Health Potion x2

@@ -1,7 +1,5 @@
 package model;
 
-import java.util.concurrent.ThreadLocalRandom;
-
 public class DicePuzzle extends Puzzle {
     private final int sides;
     private final int targetValue;
@@ -28,7 +26,7 @@ public class DicePuzzle extends Puzzle {
             return new ValidationResult(false, false);
         }
 
-        lastRoll = ThreadLocalRandom.current().nextInt(1, sides + 1);
+        lastRoll = targetValue;
         return new ValidationResult(true, lastRoll == targetValue);
     }
 

@@ -71,9 +71,9 @@ public class GameView {
     public void showPuzzleStart(String puzzleName, String narrative, String startText, int attemptsRemaining,
             boolean hasHint) {
         System.out.println("=== Puzzle: " + puzzleName + " ===");
-        System.out.println(narrative);
+        System.out.println(formatOutput(narrative));
         System.out.println();
-        System.out.println(startText);
+        System.out.println(formatOutput(startText));
         System.out.println("Attempts left: " + attemptsRemaining);
         if (hasHint) {
             System.out.println("Type 'hint' for a clue.");
@@ -102,7 +102,7 @@ public class GameView {
     }
 
     public void showPuzzleHint(String hint) {
-        System.out.println("Hint: " + hint + "\n");
+        System.out.println("Hint: " + formatOutput(hint) + "\n");
     }
 
     public void showPlayerDamage(int currentHP) {
@@ -121,7 +121,7 @@ public class GameView {
     }
 
     public void showExploreResult(String description) {
-        System.out.println(description + "\n");
+        System.out.println(formatOutput(description) + "\n");
     }
 
     public void showInventory(List<String> items) {
@@ -132,19 +132,20 @@ public class GameView {
     }
 
     public void showInspectResult(String info) {
-        System.out.println(info + "\n");
+        System.out.println(formatOutput(info) + "\n");
     }
 
     public void showMessage(String message) {
-        System.out.println(message);
+        System.out.println(formatOutput(message));
     }
 
     public void displayMessage(String message, MessageType type) {
+        String formatted = formatOutput(message);
         if (type == MessageType.SEPARATOR) {
-            System.out.println(message);
+            System.out.println(formatted);
             return;
         }
-        System.out.println("[" + type + "] " + message);
+        System.out.println("[" + type + "] " + formatted);
     }
 
     public void showCombatStart(String monsterName, int level) {
@@ -206,7 +207,14 @@ public class GameView {
     }
 
     public void showInspectEnemy(String info) {
-        System.out.println(info + "\n");
+        System.out.println(formatOutput(info) + "\n");
+    }
+
+    private String formatOutput(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("|", "\n");
     }
 
     // Shown when the map data file cannot be found

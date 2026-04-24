@@ -8,12 +8,16 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 public class Game {
     // All data files live in the data/ folder at the project root.
     private static final String DATA_DIR = "data/";
+    private static final String MONSTER_FLAVOR_FILE = "monster_flavor_text.csv";
+    private static final Pattern FIRST_INTEGER_PATTERN = Pattern.compile("-?\\d+");
 
     private Map<String, Room> rooms = new HashMap<>();
     private Map<String, Integer> idToRoomNumber = new HashMap<>();
@@ -90,6 +94,71 @@ public class Game {
                 }
                 createAndAttachMonsterFromParts(String.format("M%02d", counter++), parts, true);
             }
+            loadMonsterFlavorFromCsv(MONSTER_FLAVOR_FILE);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean loadItemsFromCsv(String itemsFilename, String weaponsFilename,
+            String armorFilename, String consumablesFilename) {
+        try {
+            for (Room room : map) {
+                room.getItems().clear();
+            }
+
+            Table weaponsTable = Table.read().csv(DATA_DIR + weaponsFilename);
+            Table armorTable = Table.read().csv(DATA_DIR + armorFilename);
+            Table consumablesTable = Table.read().csv(DATA_DIR + consumablesFilename);
+            Table itemsTable = Table.read().csv(DATA_DIR + itemsFilename);
+
+            Map<String, WeaponStats> weaponStatsByItemId = new HashMap<>();
+            for (int i = 0; i < weaponsTable.rowCount(); i++) {
+                String itemId = getCellString(weaponsTable, "ItemID", i);
+                weaponStatsByItemId.put(itemId, new WeaponStats(
+                        getCellString(weaponsTable, "weaponType", i),
+                        parseIntSafe(getCellString(weaponsTable, "attackBonus", i), 0),
+                        parseIntSafe(getCellString(weaponsTable, "missChance", i), 0),
+                        getCellString(weaponsTable, "specialEffect", i)));
+            }
+
+            Map<String, Integer> armorBonusByItemId = new HashMap<>();
+            for (int i = 0; i < armorTable.rowCount(); i++) {
+                String itemId = getCellString(armorTable, "ItemID", i);
+                int defenseBonus = parseIntSafe(getCellString(armorTable, "defenseBonus", i), 0);
+                armorBonusByItemId.put(itemId, defenseBonus);
+            }
+
+            Map<String, ConsumableStats> consumableStatsByItemId = new HashMap<>();
+            for (int i = 0; i < consumablesTable.rowCount(); i++) {
+                String itemId = getCellString(consumablesTable, "ItemID", i);
+                consumableStatsByItemId.put(itemId, new ConsumableStats(
+                        parseIntSafe(getCellString(consumablesTable, "healAmount", i), 0),
+                        parseIntSafe(getCellString(consumablesTable, "tempDefBonus", i), 0),
+                        parseIntSafe(getCellString(consumablesTable, "tempDefTurns", i), 0),
+                        parseIntSafe(getCellString(consumablesTable, "hpPenalty", i), 0)));
+            }
+
+            for (int i = 0; i < itemsTable.rowCount(); i++) {
+                String itemId = getCellString(itemsTable, "ItemID", i);
+                String itemName = getCellString(itemsTable, "Name", i);
+                String itemType = getCellString(itemsTable, "Item Type", i);
+                String rarity = getCellString(itemsTable, "Rarity", i);
+                String description = getCellString(itemsTable, "Description", i);
+                String roomId = getCellString(itemsTable, "RoomID", i);
+                String benefits = getCellString(itemsTable, "Benefits", i);
+                String weaknesses = getCellString(itemsTable, "Weaknesses", i);
+
+                Item item = createItem(itemId, itemName, itemType, rarity, description,
+                        benefits, weaknesses, weaponStatsByItemId, armorBonusByItemId,
+                        consumableStatsByItemId);
+                Room room = getRoomById(roomId);
+                if (item != null && room != null) {
+                    room.addItem(item);
+                }
+            }
+
             return true;
         } catch (Exception e) {
             return false;
@@ -125,6 +194,39 @@ public class Game {
                         : String.format("M%02d", i + 1);
                 boolean alive = !hasAlive || parseBoolean(getCellString(table, "isAlive", i), true);
                 createAndAttachMonsterFromParts(monsterId, parts, alive);
+            }
+
+            loadMonsterFlavorFromCsv(MONSTER_FLAVOR_FILE);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean loadMonsterFlavorFromCsv(String filename) {
+        try {
+            Table table = Table.read().csv(DATA_DIR + filename);
+            List<String> columnNames = table.columnNames();
+            if (!columnNames.contains("MonsterID")) {
+                return false;
+            }
+
+            boolean hasStart = columnNames.contains("combatStartText");
+            boolean hasDeath = columnNames.contains("combatDeathText");
+
+            for (int i = 0; i < table.rowCount(); i++) {
+                String monsterId = getCellString(table, "MonsterID", i);
+                Monster monster = monstersById.get(monsterId);
+                if (monster == null) {
+                    continue;
+                }
+
+                if (hasStart) {
+                    monster.setCombatStartText(getCellString(table, "combatStartText", i));
+                }
+                if (hasDeath) {
+                    monster.setCombatDeathText(getCellString(table, "combatDeathText", i));
+                }
             }
             return true;
         } catch (Exception e) {
@@ -219,6 +321,94 @@ public class Game {
         return table.column(columnName).getString(rowIndex);
     }
 
+    private int parseIntSafe(String raw, int fallback) {
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private int extractFirstInt(String text, int fallback) {
+        if (text == null) {
+            return fallback;
+        }
+        Matcher matcher = FIRST_INTEGER_PATTERN.matcher(text);
+        if (matcher.find()) {
+            try {
+                return Integer.parseInt(matcher.group());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return fallback;
+    }
+
+    private boolean containsIgnoreCase(String text, String token) {
+        return text != null && token != null && text.toLowerCase().contains(token.toLowerCase());
+    }
+
+    private Item createItem(String itemId, String itemName, String itemType, String rarity,
+            String description, String benefits, String weaknesses,
+            Map<String, WeaponStats> weaponStatsByItemId,
+            Map<String, Integer> armorBonusByItemId,
+            Map<String, ConsumableStats> consumableStatsByItemId) {
+        String normalizedType = itemType == null ? "" : itemType.toLowerCase();
+
+        if (normalizedType.contains("key")) {
+            return new KeyItem(itemName, benefits);
+        }
+
+        if (normalizedType.contains("armor")) {
+            int defenseBonus = armorBonusByItemId.getOrDefault(itemId, extractFirstInt(benefits, 0));
+            return new Armor(itemName, Math.max(0, defenseBonus));
+        }
+
+        if (normalizedType.contains("weapon")) {
+            WeaponStats stats = weaponStatsByItemId.get(itemId);
+            int attack = stats != null ? stats.attackBonus() : extractFirstInt(benefits, 0);
+            int missChance = stats != null ? stats.missChance() : extractFirstInt(weaknesses, 0);
+            String weaponType = stats != null && stats.weaponType() != null && !stats.weaponType().isBlank()
+                    ? stats.weaponType()
+                    : (normalizedType.contains("ranged") ? "ranged" : "melee");
+            String specialEffect = stats != null ? stats.specialEffect() : "NONE";
+            return new Weapon(itemName, Math.max(0, attack), weaponType, Math.max(0, missChance), specialEffect);
+        }
+
+        if (normalizedType.contains("consumable")) {
+            ConsumableStats stats = consumableStatsByItemId.get(itemId);
+            int hpEffect = stats != null ? stats.healAmount()
+                    : (containsIgnoreCase(benefits, "HP")
+                            ? Math.max(0, extractFirstInt(benefits, 0))
+                            : 0);
+            int defEffect = stats != null ? stats.tempDefBonus()
+                    : (containsIgnoreCase(benefits, "DEF")
+                            ? Math.max(0, extractFirstInt(benefits, 0))
+                            : 0);
+            int defDuration;
+            if (stats != null) {
+                defDuration = stats.tempDefTurns();
+            } else if (defEffect > 0) {
+                int parsedDuration = extractFirstInt(benefits, 1);
+                defDuration = Math.max(1, parsedDuration);
+            } else {
+                defDuration = 0;
+            }
+            int hpPenalty = stats != null ? stats.hpPenalty()
+                    : (containsIgnoreCase(weaknesses, "HP")
+                            ? Math.max(0, Math.abs(extractFirstInt(weaknesses, 0)))
+                            : 0);
+            return new Consumable(itemName, hpEffect, defEffect, defDuration, hpPenalty);
+        }
+
+        return new Item(itemName, itemType, rarity, description, benefits, weaknesses);
+    }
+
+    private record WeaponStats(String weaponType, int attackBonus, int missChance, String specialEffect) {
+    }
+
+    private record ConsumableStats(int healAmount, int tempDefBonus, int tempDefTurns, int hpPenalty) {
+    }
+
     public boolean loadPuzzles(String filename) {
         return PuzzleLoader.loadAllPuzzles(DATA_DIR + filename, this);
     }
@@ -294,7 +484,84 @@ public class Game {
         return true;
     }
 
-    private static final int[][] DIRECTION_OFFSETS = { { -1, 0 }, { 0, 1 }, { 1, 0 }, { 0, -1 } };
+    private static final int COORD_STEP = 2;
+    private static final Map<String, Integer> EDGE_EXTRA_ROOMS = createEdgeExtraRooms();
+    private static final int[][] DIRECTION_OFFSETS = {
+            { -COORD_STEP, 0 },
+            { 0, COORD_STEP },
+            { COORD_STEP, 0 },
+            { 0, -COORD_STEP }
+    };
+
+    private static Map<String, Integer> createEdgeExtraRooms() {
+        Map<String, Integer> overrides = new HashMap<>();
+        // Stretch this corridor so GH branch rooms don't crowd the church/graveyard
+        // side.
+        overrides.put(normalizedEdgeKey("RD-01", "GH-01"), 2);
+        return overrides;
+    }
+
+    private static String normalizedEdgeKey(String a, String b) {
+        if (a.compareToIgnoreCase(b) <= 0) {
+            return a.toUpperCase() + "|" + b.toUpperCase();
+        }
+        return b.toUpperCase() + "|" + a.toUpperCase();
+    }
+
+    private int edgeStepMultiplier(String fromRoomId, String toRoomId) {
+        int extraRooms = EDGE_EXTRA_ROOMS.getOrDefault(normalizedEdgeKey(fromRoomId, toRoomId), 0);
+        return Math.max(1, 1 + extraRooms);
+    }
+
+    private void setRoomCoordinate(String roomId, int row, int col) {
+        if (!rooms.containsKey(roomId)) {
+            return;
+        }
+        roomCoordinates.put(roomId, new int[] { row, col });
+    }
+
+    private void applyManualLayoutOverrides() {
+        int[] rd01 = roomCoordinates.get("RD-01");
+        if (rd01 == null) {
+            return;
+        }
+
+        // Keep the guardhouse branch compact and directional.
+        int gh01Row = rd01[0];
+        int gh01Col = rd01[1] - (COORD_STEP * edgeStepMultiplier("RD-01", "GH-01"));
+        int gh02Row = gh01Row - COORD_STEP;
+        int gh02Col = gh01Col;
+        int gh03Row = gh02Row;
+        int gh03Col = gh02Col + COORD_STEP;
+        int gh04Row = gh02Row;
+        int gh04Col = gh02Col - COORD_STEP;
+
+        setRoomCoordinate("GH-01", gh01Row, gh01Col);
+        setRoomCoordinate("GH-02", gh02Row, gh02Col);
+        setRoomCoordinate("GH-03", gh03Row, gh03Col);
+        setRoomCoordinate("GH-04", gh04Row, gh04Col);
+
+        recalculateBounds();
+    }
+
+    private void recalculateBounds() {
+        minRow = Integer.MAX_VALUE;
+        maxRow = Integer.MIN_VALUE;
+        minCol = Integer.MAX_VALUE;
+        maxCol = Integer.MIN_VALUE;
+        for (int[] coords : roomCoordinates.values()) {
+            if (coords == null || coords.length < 2) {
+                continue;
+            }
+            minRow = Math.min(minRow, coords[0]);
+            maxRow = Math.max(maxRow, coords[0]);
+            minCol = Math.min(minCol, coords[1]);
+            maxCol = Math.max(maxCol, coords[1]);
+        }
+        if (roomCoordinates.isEmpty()) {
+            minRow = maxRow = minCol = maxCol = 0;
+        }
+    }
 
     private void buildRoomCoordinates() {
         roomCoordinates.clear();
@@ -314,11 +581,11 @@ public class Game {
             String roomId = queue.removeFirst();
             int[] coords = roomCoordinates.get(roomId);
             Room room = rooms.get(roomId);
-            if (room == null) {
+            if (room == null || coords == null) {
                 continue;
             }
 
-            String[] directions = {"N", "E", "S", "W"}; // Matches the order of DIRECTION_OFFSETS
+            String[] directions = { "N", "E", "S", "W" }; // Matches the order of DIRECTION_OFFSETS
 
             for (int d = 0; d < directions.length; d++) {
                 // 1. Get the target Room ID using the String direction
@@ -341,10 +608,12 @@ public class Game {
                 }
 
                 // (Keep your existing coordinate math here)
-                int[] desiredCoords = new int[] { coords[0] + DIRECTION_OFFSETS[d][0],
-                        coords[1] + DIRECTION_OFFSETS[d][1] };
+                int multiplier = edgeStepMultiplier(roomId, neighborId);
+                int deltaRow = DIRECTION_OFFSETS[d][0] * multiplier;
+                int deltaCol = DIRECTION_OFFSETS[d][1] * multiplier;
+                int[] desiredCoords = new int[] { coords[0] + deltaRow, coords[1] + deltaCol };
                 if (isCoordinateTaken(desiredCoords[0], desiredCoords[1])) {
-                    desiredCoords = findNearestFreeCoordinate(desiredCoords[0], desiredCoords[1]);
+                    desiredCoords = findNearestFreeAlongDirection(coords[0], coords[1], deltaRow, deltaCol);
                 }
 
                 roomCoordinates.put(neighborId, desiredCoords);
@@ -352,6 +621,8 @@ public class Game {
                 queue.add(neighborId);
             }
         }
+
+        applyManualLayoutOverrides();
     }
 
     private boolean isCoordinateTaken(int row, int col) {
@@ -363,27 +634,17 @@ public class Game {
         return false;
     }
 
-    private int[] findNearestFreeCoordinate(int startRow, int startCol) {
-        Deque<int[]> search = new ArrayDeque<>();
-        java.util.Set<String> visited = new java.util.HashSet<>();
-        search.add(new int[] { startRow, startCol });
-        visited.add(startRow + "," + startCol);
-
-        while (!search.isEmpty()) {
-            int[] current = search.removeFirst();
-            if (!isCoordinateTaken(current[0], current[1])) {
-                return current;
+    private int[] findNearestFreeAlongDirection(int baseRow, int baseCol, int deltaRow, int deltaCol) {
+        int scale = 1;
+        while (scale < 20) {
+            int row = baseRow + (deltaRow * scale);
+            int col = baseCol + (deltaCol * scale);
+            if (!isCoordinateTaken(row, col)) {
+                return new int[] { row, col };
             }
-            for (int[] offset : DIRECTION_OFFSETS) {
-                int nextRow = current[0] + offset[0];
-                int nextCol = current[1] + offset[1];
-                String key = nextRow + "," + nextCol;
-                if (visited.add(key)) {
-                    search.add(new int[] { nextRow, nextCol });
-                }
-            }
+            scale++;
         }
-        return new int[] { startRow, startCol };
+        return new int[] { baseRow + deltaRow, baseCol + deltaCol };
     }
 
     private void updateBounds(int[] coords) {

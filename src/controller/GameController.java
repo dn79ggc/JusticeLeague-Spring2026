@@ -4,6 +4,7 @@ package controller;
 import model.Armor;
 import model.Game;
 import model.Item;
+import model.KeyItem;
 import model.Monster;
 import model.Player;
 import model.Puzzle;
@@ -23,7 +24,6 @@ public class GameController {
     private CombatSystem combatSystem;
     private InventoryController inventoryController;
 
-
     // Called by Main. Owns the game loop.
     public void run() {
         Scanner scanner = new Scanner(System.in);
@@ -40,6 +40,7 @@ public class GameController {
 
         game.loadPuzzles(PUZZLE_FILE);
         game.loadMonstersFromCsv("monsters.csv");
+        game.loadItemsFromCsv("items.csv", "weapons.csv", "armor.csv", "consumables.csv");
 
         view.showMapLoadSuccess();
         view.showWelcome(game.getTotalRooms());
@@ -49,6 +50,12 @@ public class GameController {
 
         boolean gameEnd = false;
         while (!gameEnd) {
+            if (!player.isAlive()) {
+                view.showGameOverScreen();
+                gameEnd = true;
+                continue;
+            }
+
             Room currentRoom = game.getRoomByNumber(player.getLocation());
             player.setCurrentRoom(currentRoom);
 
@@ -57,6 +64,10 @@ public class GameController {
                     && currentRoom.hasMonster()
                     && currentRoom.getMonster().isAlive()) {
                 combatSystem.startCombat(player, currentRoom.getMonster(), currentRoom);
+                if (!player.isAlive() || combatSystem.isEndingReached()) {
+                    gameEnd = true;
+                    continue;
+                }
             }
 
             if (combatSystem.isInCombat()) {
@@ -67,6 +78,12 @@ public class GameController {
                 view.showPrompt(currentRoom.getRoomName(), currentRoom.hasPuzzle());
             }
 
+            if (!scanner.hasNextLine()) {
+                view.showGoodbye();
+                gameEnd = true;
+                continue;
+            }
+
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) {
                 view.showInvalidInput();
@@ -74,6 +91,9 @@ public class GameController {
             }
 
             gameEnd = handleInput(input, player, game, view, currentRoom);
+            if (!gameEnd && (!player.isAlive() || combatSystem.isEndingReached())) {
+                gameEnd = true;
+            }
         }
 
         scanner.close();
@@ -86,13 +106,12 @@ public class GameController {
         }
 
         if (puzzleActive) {
-            handlePuzzleInput(input, player, view, currentRoom);
-            return false;
+            return handlePuzzleInput(input, player, view, currentRoom);
         }
 
         if (combatSystem != null && combatSystem.isInCombat()) {
             combatSystem.executeCombatCycle(input, player);
-            return false;
+            return !player.isAlive() || combatSystem.isEndingReached();
         }
 
         if (input.equalsIgnoreCase("solve puzzle")) {
@@ -131,6 +150,10 @@ public class GameController {
             if (game.allRoomsVisited()) {
                 view.showVictory();
             }
+
+            if (combatSystem.checkEscapeWinCondition(player)) {
+                return true;
+            }
             return false;
         }
 
@@ -145,6 +168,49 @@ public class GameController {
 
         if (input.equalsIgnoreCase("inventory")) {
             view.showInventory(player.showInventory());
+            return false;
+        }
+
+        if (input.equalsIgnoreCase("pickup")) {
+            if (currentRoom == null || !currentRoom.hasItems()) {
+                view.showMessage("There are no items to pick up here.\n");
+                return false;
+            }
+
+            Item roomItem = currentRoom.getItems().get(0);
+            if (player.pickupItem(roomItem)) {
+                view.showMessage("Picked up " + roomItem.getName() + ".\n");
+            } else {
+                view.showMessage("Could not pick up item (bag may be full).\n");
+            }
+            return false;
+        }
+
+        if (input.toLowerCase().startsWith("pickup ")) {
+            if (currentRoom == null || !currentRoom.hasItems()) {
+                view.showMessage("There are no items to pick up here.\n");
+                return false;
+            }
+
+            String itemName = input.substring(7).trim();
+            Item roomItem = null;
+            for (Item candidate : currentRoom.getItems()) {
+                if (candidate.getName().equalsIgnoreCase(itemName)) {
+                    roomItem = candidate;
+                    break;
+                }
+            }
+
+            if (roomItem == null) {
+                view.showMessage("That item is not in this room.\n");
+                return false;
+            }
+
+            if (player.pickupItem(roomItem)) {
+                view.showMessage("Picked up " + roomItem.getName() + ".\n");
+            } else {
+                view.showMessage("Could not pick up item (bag may be full).\n");
+            }
             return false;
         }
 
@@ -317,19 +383,26 @@ public class GameController {
                 activePuzzle.getAttempts(), activePuzzle.hasHint());
     }
 
-    private void handlePuzzleInput(String input, Player player, GameView view, Room currentRoom) {
+    private boolean handlePuzzleInput(String input, Player player, GameView view, Room currentRoom) {
         if (input.equalsIgnoreCase("hint")) {
             view.showPuzzleHint(activePuzzle.getHint());
-            return;
+            return false;
         }
 
         Puzzle.PuzzleResult result = activePuzzle.checkSolution(input);
         switch (result) {
             case CORRECT -> {
                 view.showPuzzleSolved(activePuzzle.getSuccessMessage());
+                if ("Front Gate Key".equalsIgnoreCase(activePuzzle.getName()) && !player.hasKeyItem("Front Gate Key")) {
+                    player.addToInventory(new KeyItem("Front Gate Key", "GH-01"));
+                    view.showMessage("You obtained the Front Gate Key.\n");
+                }
                 currentRoom.removePuzzle();
                 activePuzzle = null;
                 puzzleActive = false;
+                if (combatSystem.checkEscapeWinCondition(player)) {
+                    return true;
+                }
             }
             case WRONG_RETRY -> view.showPuzzleWrong(activePuzzle.getFailureMessage(), activePuzzle.getAttempts());
             case WRONG_FINAL -> {
@@ -339,9 +412,14 @@ public class GameController {
                 currentRoom.removePuzzle();
                 activePuzzle = null;
                 puzzleActive = false;
+                if (!player.isAlive()) {
+                    view.showGameOverScreen();
+                    return true;
+                }
             }
             case INVALID_INPUT -> view.showInvalidPuzzleInput();
         }
+        return false;
     }
 
     public static boolean validateInput(char input) {

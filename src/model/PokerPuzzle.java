@@ -1,7 +1,5 @@
 package model;
 
-import java.util.concurrent.ThreadLocalRandom;
-
 public class PokerPuzzle extends Puzzle {
     private int ghostCard;
 
@@ -12,7 +10,7 @@ public class PokerPuzzle extends Puzzle {
 
     @Override
     public String start() {
-        ghostCard = ThreadLocalRandom.current().nextInt(1, 14);
+        ghostCard = 6;
         return "The ghost draws a card. Its value is " + cardName(ghostCard)
                 + ". Type 'draw' to draw your card and compare.";
     }
@@ -23,8 +21,7 @@ public class PokerPuzzle extends Puzzle {
         if (!"DRAW".equals(cleaned)) {
             return new ValidationResult(false, false);
         }
-
-        int playerCard = ThreadLocalRandom.current().nextInt(1, 14);
+        int playerCard = Math.min(13, ghostCard + 1);
         return new ValidationResult(true, playerCard > ghostCard);
     }
 

@@ -92,6 +92,11 @@ public abstract class Puzzle {
         return new ArrayList<>(wrongAnswers);
     }
 
+    public void resetAttempts() {
+        this.attemptsLeft = this.maxAttempts;
+        this.wrongAnswers.clear();
+    }
+
     public abstract String start();
 
     protected abstract ValidationResult validateAnswer(String answer);
@@ -118,6 +123,7 @@ public abstract class Puzzle {
         }
 
         attemptsLeft = Math.max(0, attemptsLeft - 1);
+
         return PuzzleResult.WRONG_FINAL;
     }
 

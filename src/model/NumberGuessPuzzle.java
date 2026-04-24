@@ -1,7 +1,5 @@
 package model;
 
-import java.util.concurrent.ThreadLocalRandom;
-
 public class NumberGuessPuzzle extends Puzzle {
     private final int rangeMin;
     private final int rangeMax;
@@ -17,7 +15,7 @@ public class NumberGuessPuzzle extends Puzzle {
 
     @Override
     public String start() {
-        correctNumber = ThreadLocalRandom.current().nextInt(rangeMin, rangeMax + 1);
+        correctNumber = resolveCorrectNumber();
         StringBuilder display = new StringBuilder("Numbers written in blood on the wall: ");
         for (int i = rangeMin; i <= rangeMax; i++) {
             if (i > rangeMin) {
@@ -48,5 +46,21 @@ public class NumberGuessPuzzle extends Puzzle {
         }
 
         return new ValidationResult(true, guessed == correctNumber);
+    }
+
+    private int resolveCorrectNumber() {
+        String normalized = solution == null ? "" : solution.trim();
+        if (!normalized.isBlank()) {
+            try {
+                int parsed = Integer.parseInt(normalized);
+                if (parsed >= rangeMin && parsed <= rangeMax) {
+                    return parsed;
+                }
+            } catch (NumberFormatException ignored) {
+                // Use deterministic fallback when puzzle data intentionally uses non-numeric
+                // marker text.
+            }
+        }
+        return rangeMin;
     }
 }
