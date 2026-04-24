@@ -498,6 +498,10 @@ public class Game {
         // Stretch this corridor so GH branch rooms don't crowd the church/graveyard
         // side.
         overrides.put(normalizedEdgeKey("RD-01", "GH-01"), 2);
+        // Add a little extra spacing along the east road and its connection
+        // to the shops so the TH/GS clusters don't overlap.
+        overrides.put(normalizedEdgeKey("RD-01", "RD-02"), 2);
+        overrides.put(normalizedEdgeKey("RD-02", "GS-01"), 2);
         return overrides;
     }
 
@@ -540,6 +544,40 @@ public class Game {
         setRoomCoordinate("GH-02", gh02Row, gh02Col);
         setRoomCoordinate("GH-03", gh03Row, gh03Col);
         setRoomCoordinate("GH-04", gh04Row, gh04Col);
+
+        // If one of the GH coordinates collides with an existing room (outside
+        // of the GH branch), nudge GH-03 horizontally until it is free. This
+        // prevents GH-03 from being omitted from the computed map when
+        // coordinates conflict.
+        int[] gh03 = roomCoordinates.get("GH-03");
+        if (gh03 != null) {
+            boolean changed = false;
+            while (true) {
+                boolean collision = false;
+                for (Map.Entry<String, int[]> e : roomCoordinates.entrySet()) {
+                    String key = e.getKey();
+                    if (key == null)
+                        continue;
+                    if (key.equalsIgnoreCase("GH-01") || key.equalsIgnoreCase("GH-02")
+                            || key.equalsIgnoreCase("GH-03") || key.equalsIgnoreCase("GH-04"))
+                        continue; // ignore GH branch itself
+                    int[] c = e.getValue();
+                    if (c != null && c[0] == gh03[0] && c[1] == gh03[1]) {
+                        collision = true;
+                        break;
+                    }
+                }
+                if (!collision)
+                    break;
+                // nudge GH-03 further to the right to avoid overlap
+                gh03[1] = gh03[1] + COORD_STEP;
+                roomCoordinates.put("GH-03", new int[] { gh03[0], gh03[1] });
+                changed = true;
+            }
+            if (changed) {
+                updateBounds(gh03);
+            }
+        }
 
         recalculateBounds();
     }

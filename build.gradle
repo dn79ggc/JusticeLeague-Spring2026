@@ -8,6 +8,7 @@ repositories {
 
 java {
     toolchain {
+        // Use Java 26 to match the project's configured toolchain
         languageVersion = JavaLanguageVersion.of(26)
     }
 }
@@ -20,6 +21,7 @@ sourceSets {
     }
 }
 
+// Use JavaFX version that matches the project Java toolchain
 def javafxVersion = '26'
 def javafxModules = ['javafx.controls', 'javafx.fxml', 'javafx.media']
 
@@ -72,6 +74,14 @@ tasks.register('runGui', JavaExec) {
     description = 'Run the JavaFX GUI'
     classpath = applicationRuntimeClasspath
     mainClass.set('view.GameGUI')
+    jvmArgs = javafxJvmArgs
+}
+
+tasks.register('runSaveLoadTest', JavaExec) {
+    group = 'verification'
+    description = 'Run the save/load test harness'
+    classpath = applicationRuntimeClasspath
+    mainClass.set('controller.SaveLoadTester')
     jvmArgs = javafxJvmArgs
 }
 

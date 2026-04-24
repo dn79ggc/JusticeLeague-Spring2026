@@ -210,9 +210,24 @@ public class Player {
     }
 
     public boolean addToInventory(Item item) {
-        if (inventory.size() >= 7) {
+        if (item == null) {
             return false;
         }
+
+        // Determine if adding this item would consume a new inventory slot
+        boolean alreadyPresent = false;
+        for (Item i : inventory) {
+            if (i.getName().equalsIgnoreCase(item.getName())) {
+                alreadyPresent = true;
+                break;
+            }
+        }
+
+        int slotsUsed = getInventorySlots();
+        if (!alreadyPresent && slotsUsed >= 7 && !(item instanceof KeyItem)) {
+            return false; // would require a new slot
+        }
+
         inventory.add(item);
         return true;
     }
@@ -225,7 +240,16 @@ public class Player {
     }
 
     public int getInventorySlots() {
-        return inventory.size();
+        // Count unique item names as inventory slots so stackable items
+        // (e.g., health potions) occupy a single slot even if multiple
+        // instances exist in the list.
+        java.util.Set<String> names = new java.util.HashSet<>();
+        for (Item item : inventory) {
+            if (item == null)
+                continue;
+            names.add(item.getName().toLowerCase());
+        }
+        return names.size();
     }
 
     public Item getItemByName(String name) {
@@ -251,10 +275,17 @@ public class Player {
             return false;
         }
 
-        if (inventory.size() >= 7) {
+        int slotsUsed = getInventorySlots();
+        boolean wouldIntroduceNew = true;
+        for (Item i : inventory) {
+            if (i.getName().equalsIgnoreCase(equippedWeapon.getName())) {
+                wouldIntroduceNew = false;
+                break;
+            }
+        }
+        if (wouldIntroduceNew && slotsUsed >= 7) {
             return false;
         }
-
         inventory.add(equippedWeapon);
         equippedWeapon = null;
         return true;
@@ -265,10 +296,17 @@ public class Player {
             return false;
         }
 
-        if (inventory.size() >= 7) {
+        int slotsUsed = getInventorySlots();
+        boolean wouldIntroduceNew = true;
+        for (Item i : inventory) {
+            if (i.getName().equalsIgnoreCase(equippedArmor.getName())) {
+                wouldIntroduceNew = false;
+                break;
+            }
+        }
+        if (wouldIntroduceNew && slotsUsed >= 7) {
             return false;
         }
-
         inventory.add(equippedArmor);
         equippedArmor = null;
         return true;
@@ -607,8 +645,17 @@ public class Player {
             return result;
         }
 
+        // Aggregate items by name so stackable items display as "Name xN"
+        java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
         for (Item item : inventory) {
-            result.add(item.getName());
+            String name = item.getName();
+            counts.put(name, counts.getOrDefault(name, 0) + 1);
+        }
+
+        for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
+            String name = e.getKey();
+            int cnt = e.getValue();
+            result.add(cnt > 1 ? name + " x" + cnt : name);
         }
 
         return result;

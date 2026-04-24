@@ -25,6 +25,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
@@ -65,6 +66,7 @@ import model.Puzzle;
 import model.PuzzleLoader;
 import model.SaveManager;
 import model.Weapon;
+import view.GameView.WinType;
 
 public class GameGUI extends Application {
     private enum GameState {
@@ -119,7 +121,7 @@ public class GameGUI extends Application {
     private Button btnUseFromBag;
     private Button btnEquipFromBag;
     private Button btnKick;
-    private Button btnStatus;
+    // status button removed; status is shown under player info panel
     private Button btnAttack;
     private Button btnDefend;
     private Button btnUseItem;
@@ -154,6 +156,7 @@ public class GameGUI extends Application {
 
     private Game game;
     private Player player;
+    private int activeSaveSlot = 0; // 0 = no active slot (base/new game)
     private int selectedRoomNumber;
     private Pane mapCanvas;
     private ListView<OutputLine> outputArea;
@@ -312,7 +315,9 @@ public class GameGUI extends Application {
         scrollPane.setFitToWidth(true);
         scrollPane.setFitToHeight(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-control-inner-background: transparent;");
-        VBox wrapper = new VBox(scrollPane);
+        saveQuitBox = createSaveQuitBox();
+
+        VBox wrapper = new VBox(scrollPane, saveQuitBox);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         wrapper.setPrefWidth(340);
         wrapper.setMinWidth(280);
@@ -438,9 +443,8 @@ public class GameGUI extends Application {
         mapHint.prefWidthProperty().bind(rightColumn.widthProperty().subtract(8));
 
         VBox inventorySection = createSectionBox("Inventory", createInventorySection());
-
-        saveQuitBox = createSaveQuitBox();
-        rightColumn.getChildren().addAll(mapTitle, mapFrame, mapHint, inventorySection, saveQuitBox);
+        // Save/quit menu moved to left column per UI layout changes
+        rightColumn.getChildren().addAll(mapTitle, mapFrame, mapHint, inventorySection);
         return rightColumn;
     }
 
@@ -705,7 +709,8 @@ public class GameGUI extends Application {
         VBox box = new VBox(8);
         box.setPadding(new Insets(8));
         lstInventory = new ListView<>();
-        lstInventory.setPrefHeight(120);
+        // Make inventory tall enough to display up to 7 distinct slots
+        lstInventory.setPrefHeight(220);
         lstInventory.setStyle(
                 "-fx-control-inner-background: #111827; -fx-background-color: #111827; -fx-border-color: #374151; -fx-border-width: 1;");
         lstInventory.setOnMouseClicked(e -> {
@@ -723,14 +728,18 @@ public class GameGUI extends Application {
         MenuItem inspectItem = new MenuItem("Inspect");
         MenuItem equipItem = new MenuItem("Equip");
         MenuItem useItem = new MenuItem("Use");
+        MenuItem dropItem = new MenuItem("Drop");
+        MenuItem unequipItem = new MenuItem("Unequip");
         inspectItem.setOnAction(e -> inventoryQuickAction("Inspect"));
         equipItem.setOnAction(e -> inventoryQuickAction("Equip"));
         useItem.setOnAction(e -> inventoryQuickAction("Use"));
-        inventoryMenu.getItems().addAll(inspectItem, equipItem, useItem);
+        dropItem.setOnAction(e -> inventoryDropSelected());
+        unequipItem.setOnAction(e -> inventoryUnequipSelected());
+        inventoryMenu.getItems().addAll(inspectItem, useItem, equipItem, dropItem, unequipItem);
 
         lstInventory.setOnContextMenuRequested(e -> {
             String selectedLabel = lstInventory.getSelectionModel().getSelectedItem();
-            Item selectedItem = selectedLabel == null ? null : player.getItemByName(selectedLabel.trim());
+            Item selectedItem = selectedLabel == null ? null : player.getItemByName(labelToItemName(selectedLabel));
             if (selectedItem == null) {
                 return;
             }
@@ -744,7 +753,21 @@ public class GameGUI extends Application {
                 inventoryMenu.hide();
             }
         });
-        box.getChildren().add(lstInventory);
+        // Add quick-action buttons under the inventory list
+        HBox invActions = new HBox(8);
+        invActions.setAlignment(Pos.CENTER);
+        Button invInspect = new Button("Inspect");
+        Button invDrop = new Button("Drop");
+        Button invUnequip = new Button("Unequip");
+        invInspect.setOnAction(e -> inventoryInspectSelected());
+        invDrop.setOnAction(e -> inventoryDropSelected());
+        invUnequip.setOnAction(e -> inventoryUnequipSelected());
+        invInspect.setPrefWidth(100);
+        invDrop.setPrefWidth(100);
+        invUnequip.setPrefWidth(100);
+        invActions.getChildren().addAll(invInspect, invDrop, invUnequip);
+
+        box.getChildren().addAll(lstInventory, invActions);
         return box;
     }
 
@@ -860,65 +883,7 @@ public class GameGUI extends Application {
         btnLoadGame.setOnAction(e -> showLoadDialog());
         btnQuitMainMenu.setOnAction(e -> Platform.exit());
 
-        Label lblTestHeader = createSectionLabel("Puzzle Test Launcher");
-        lblTestHeader.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
-        lblTestHeader.setTextFill(Color.web("#fca5a5"));
-
-        Label lblMonsterTestHeader = createSectionLabel("Monster Test Launcher");
-        lblMonsterTestHeader.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
-        lblMonsterTestHeader.setTextFill(Color.web("#93c5fd"));
-
-        GridPane puzzleTestGrid = new GridPane();
-        puzzleTestGrid.setHgap(10);
-        puzzleTestGrid.setVgap(10);
-        puzzleTestGrid.setPadding(new Insets(10, 0, 0, 0));
-
-        Button btnTestP01 = createPuzzleTestButton("P01 Scramble", "P01", GameState.PUZZLE_TEXT, PuzzleUIType.SCRAMBLE);
-        Button btnTestP02 = createPuzzleTestButton("P02 Number", "P02", GameState.PUZZLE_TEXT,
-                PuzzleUIType.NUMBER_GUESS);
-        Button btnTestP03 = createPuzzleTestButton("P03 RPS", "P03", GameState.PUZZLE_TEXT, PuzzleUIType.RPS);
-        Button btnTestP05 = createPuzzleTestButton("P05 Poker", "P05", GameState.PUZZLE_CARD, PuzzleUIType.POKER);
-        Button btnTestP06 = createPuzzleTestButton("P06 Dice", "P06", GameState.PUZZLE_CARD, PuzzleUIType.DICE);
-        Button btnTestP07 = createPuzzleTestButton("P07 Ghost", "P07", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
-        Button btnTestP08 = createPuzzleTestButton("P08 Vampire", "P08", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
-        Button btnTestP09 = createPuzzleTestButton("P09 Shadow", "P09", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
-        Button btnTestP10 = createPuzzleTestButton("P10 Wind", "P10", GameState.PUZZLE_TEXT, PuzzleUIType.RIDDLE);
-        Button btnTestP11 = createPuzzleTestButton("P11 Key", "P11", GameState.PUZZLE_CARD, PuzzleUIType.SELECTION);
-
-        puzzleTestGrid.add(btnTestP01, 0, 0);
-        puzzleTestGrid.add(btnTestP02, 1, 0);
-        puzzleTestGrid.add(btnTestP03, 0, 1);
-        puzzleTestGrid.add(btnTestP05, 1, 1);
-        puzzleTestGrid.add(btnTestP06, 0, 2);
-        puzzleTestGrid.add(btnTestP07, 1, 2);
-        puzzleTestGrid.add(btnTestP08, 0, 3);
-        puzzleTestGrid.add(btnTestP09, 1, 3);
-        puzzleTestGrid.add(btnTestP10, 0, 4);
-        puzzleTestGrid.add(btnTestP11, 1, 4);
-
-        GridPane monsterTestGrid = new GridPane();
-        monsterTestGrid.setHgap(10);
-        monsterTestGrid.setVgap(10);
-        monsterTestGrid.setPadding(new Insets(10, 0, 0, 0));
-
-        Button btnTestM01 = createMonsterTestButton("Banshee", "M01");
-        Button btnTestM02 = createMonsterTestButton("Small Possessor", "M02");
-        Button btnTestM04 = createMonsterTestButton("Medium Possessor", "M04");
-        Button btnTestM05 = createMonsterTestButton("Poltergeist", "M05");
-        Button btnTestM06 = createMonsterTestButton("Large Possessor", "M06");
-        Button btnTestM07 = createMonsterTestButton("Shadow", "M07");
-        Button btnTestM08 = createMonsterTestButton("The Freak", "M08");
-
-        monsterTestGrid.add(btnTestM01, 0, 0);
-        monsterTestGrid.add(btnTestM02, 1, 0);
-        monsterTestGrid.add(btnTestM04, 0, 1);
-        monsterTestGrid.add(btnTestM05, 1, 1);
-        monsterTestGrid.add(btnTestM06, 0, 2);
-        monsterTestGrid.add(btnTestM07, 1, 2);
-        monsterTestGrid.add(btnTestM08, 0, 3);
-
-        content.getChildren().addAll(btnNewGame, btnLoadGame, btnQuitMainMenu, new Separator(), lblTestHeader,
-                puzzleTestGrid, new Separator(), lblMonsterTestHeader, monsterTestGrid);
+        content.getChildren().addAll(btnNewGame, btnLoadGame, btnQuitMainMenu);
 
         ScrollPane menuScrollPane = new ScrollPane(content);
         menuScrollPane.setFitToWidth(true);
@@ -972,14 +937,12 @@ public class GameGUI extends Application {
         btnPickup = new Button("Pick Up [P]");
         btnUseFromBag = new Button("Use Item [U]");
         btnEquipFromBag = new Button("Equip [G]");
-        btnStatus = new Button("Status [T]");
         btnSolvePuzzle.setPrefWidth(150);
         btnExploreAction.setPrefWidth(150);
         btnInventory.setPrefWidth(150);
         btnPickup.setPrefWidth(150);
         btnUseFromBag.setPrefWidth(150);
         btnEquipFromBag.setPrefWidth(150);
-        btnStatus.setPrefWidth(150);
         btnSolvePuzzle.setOnAction(e -> attemptPuzzle());
         btnExploreAction.setOnAction(e -> {
             Room currentRoom = game.getRoomByNumber(player.getLocation());
@@ -991,9 +954,8 @@ public class GameGUI extends Application {
         btnPickup.setOnAction(e -> pickUpSelectedRoomItem());
         btnUseFromBag.setOnAction(e -> useConsumableFromInventory());
         btnEquipFromBag.setOnAction(e -> equipItemFromInventory());
-        btnStatus.setOnAction(e -> outputText("Status details are available when effects are active."));
         actionRow.getChildren().addAll(btnSolvePuzzle, btnExploreAction, btnInventory);
-        itemRow.getChildren().addAll(btnPickup, btnUseFromBag, btnEquipFromBag, btnStatus);
+        itemRow.getChildren().addAll(btnPickup, btnUseFromBag, btnEquipFromBag);
 
         box.getChildren().addAll(compass, actionRow, itemRow);
         return box;
@@ -1318,6 +1280,9 @@ public class GameGUI extends Application {
             return;
         }
 
+        // Ensure attempts are fresh when the player begins engaging the puzzle
+        puzzle.resetAttempts();
+
         puzzleResultLabel.setText("");
         puzzleResultLabel.setVisible(false);
         puzzleResultLabel.setManaged(false);
@@ -1626,6 +1591,9 @@ public class GameGUI extends Application {
         updatePlayerInfo();
         updateRoomInfo();
         updateMapGrid();
+        if (activeSaveSlot > 0) {
+            SaveManager.saveGame(activeSaveSlot, player, game);
+        }
     }
 
     private void useConsumableFromInventory() {
@@ -1650,6 +1618,9 @@ public class GameGUI extends Application {
         if (player.useItem(selected)) {
             int hpAfter = player.getCurrentHP();
             outputText("Used " + selected.getName() + ". HP: " + hpBefore + " -> " + hpAfter);
+            if (activeSaveSlot > 0) {
+                SaveManager.saveGame(activeSaveSlot, player, game);
+            }
         } else {
             outputText("You cannot use that item right now.");
         }
@@ -1686,6 +1657,9 @@ public class GameGUI extends Application {
             player.equipWeapon(weapon);
             player.getInventory().remove(weapon);
             outputText("Equipped weapon: " + weapon.getName());
+            if (activeSaveSlot > 0) {
+                SaveManager.saveGame(activeSaveSlot, player, game);
+            }
         } else if (selected instanceof Armor armor) {
             Armor old = player.getEquippedArmor();
             if (old != null && !player.addToInventory(old)) {
@@ -1695,6 +1669,9 @@ public class GameGUI extends Application {
             player.equipArmor(armor);
             player.getInventory().remove(armor);
             outputText("Equipped armor: " + armor.getName());
+            if (activeSaveSlot > 0) {
+                SaveManager.saveGame(activeSaveSlot, player, game);
+            }
         }
 
         updatePlayerInfo();
@@ -1734,13 +1711,12 @@ public class GameGUI extends Application {
         if (player == null || lstInventory == null) {
             return;
         }
-
         String selectedLabel = lstInventory.getSelectionModel().getSelectedItem();
         if (selectedLabel == null || selectedLabel.isBlank() || selectedLabel.equals("Your inventory is empty.")) {
             return;
         }
 
-        Item selectedItem = player.getItemByName(selectedLabel.trim());
+        Item selectedItem = player.getItemByName(labelToItemName(selectedLabel));
         if (selectedItem == null) {
             outputText("Select a valid item from your inventory list.");
             return;
@@ -1748,6 +1724,8 @@ public class GameGUI extends Application {
 
         List<String> actions = new java.util.ArrayList<>();
         actions.add("Inspect");
+        actions.add("Drop");
+        actions.add("Unequip");
         if (selectedItem instanceof Consumable) {
             actions.add("Use");
         } else if (selectedItem instanceof Weapon || selectedItem instanceof Armor) {
@@ -1767,47 +1745,111 @@ public class GameGUI extends Application {
         }
 
         String action = selectedAction.get();
-        if ("Inspect".equals(action)) {
-            outputText(selectedItem.getInfo());
-            return;
+        switch (action) {
+            case "Inspect" -> outputText(selectedItem.getInfo());
+            case "Drop" -> {
+                Alert a = new Alert(Alert.AlertType.CONFIRMATION);
+                a.setTitle("Drop Item");
+                a.setHeaderText("Drop " + selectedItem.getName() + "?");
+                styleDialog(a);
+                Optional<ButtonType> res = a.showAndWait();
+                restoreKeyboardFocus();
+                if (res.isPresent() && res.get() == ButtonType.OK) {
+                    if (player.dropItem(selectedItem)) {
+                        outputText("Dropped " + selectedItem.getName() + " into the room.");
+                        if (activeSaveSlot > 0) {
+                            SaveManager.saveGame(activeSaveSlot, player, game);
+                        }
+                    } else {
+                        outputText("Could not drop that item.");
+                    }
+                }
+            }
+            case "Unequip" -> {
+                List<String> opts = new ArrayList<>();
+                if (player.getEquippedWeapon() != null)
+                    opts.add("Weapon: " + player.getEquippedWeapon().getName());
+                if (player.getEquippedArmor() != null)
+                    opts.add("Armor: " + player.getEquippedArmor().getName());
+                if (opts.isEmpty()) {
+                    outputText("You have nothing equipped to unequip.");
+                    break;
+                }
+                ChoiceDialog<String> dlg = new ChoiceDialog<>(opts.get(0), opts);
+                dlg.setTitle("Unequip");
+                dlg.setHeaderText("Choose equipment to unequip");
+                styleDialog(dlg);
+                Optional<String> sel = dlg.showAndWait();
+                restoreKeyboardFocus();
+                if (sel.isEmpty())
+                    break;
+                String choice = sel.get();
+                if (choice.startsWith("Weapon") && player.getEquippedWeapon() != null) {
+                    if (player.unequipWeapon()) {
+                        outputText("Unequipped weapon.");
+                        if (activeSaveSlot > 0) {
+                            SaveManager.saveGame(activeSaveSlot, player, game);
+                        }
+                    } else {
+                        outputText("Cannot unequip weapon (bag may be full).");
+                    }
+                } else if (choice.startsWith("Armor") && player.getEquippedArmor() != null) {
+                    if (player.unequipArmor()) {
+                        outputText("Unequipped armor.");
+                        if (activeSaveSlot > 0) {
+                            SaveManager.saveGame(activeSaveSlot, player, game);
+                        }
+                    } else {
+                        outputText("Cannot unequip armor (bag may be full).");
+                    }
+                }
+            }
+            case "Use" -> {
+                if (selectedItem instanceof Consumable) {
+                    int hpBefore = player.getCurrentHP();
+                    if (player.useItem(selectedItem)) {
+                        int hpAfter = player.getCurrentHP();
+                        outputText("Used " + selectedItem.getName() + ". HP: " + hpBefore + " -> " + hpAfter);
+                        if (activeSaveSlot > 0) {
+                            SaveManager.saveGame(activeSaveSlot, player, game);
+                        }
+                    } else {
+                        outputText("You cannot use that item right now.");
+                    }
+                }
+            }
+            case "Equip" -> {
+                if (selectedItem instanceof Weapon weapon) {
+                    Weapon old = player.getEquippedWeapon();
+                    if (old != null && !player.addToInventory(old)) {
+                        outputText("Cannot swap weapons because your bag is full.");
+                        break;
+                    }
+                    player.equipWeapon(weapon);
+                    player.getInventory().remove(weapon);
+                    outputText("Equipped weapon: " + weapon.getName());
+                    if (activeSaveSlot > 0) {
+                        SaveManager.saveGame(activeSaveSlot, player, game);
+                    }
+                } else if (selectedItem instanceof Armor armor) {
+                    Armor old = player.getEquippedArmor();
+                    if (old != null && !player.addToInventory(old)) {
+                        outputText("Cannot swap armor because your bag is full.");
+                        break;
+                    }
+                    player.equipArmor(armor);
+                    player.getInventory().remove(armor);
+                    outputText("Equipped armor: " + armor.getName());
+                    if (activeSaveSlot > 0) {
+                        SaveManager.saveGame(activeSaveSlot, player, game);
+                    }
+                }
+            }
         }
 
-        if ("Use".equals(action) && selectedItem instanceof Consumable) {
-            int hpBefore = player.getCurrentHP();
-            if (player.useItem(selectedItem)) {
-                int hpAfter = player.getCurrentHP();
-                outputText("Used " + selectedItem.getName() + ". HP: " + hpBefore + " -> " + hpAfter);
-            } else {
-                outputText("You cannot use that item right now.");
-            }
-            updatePlayerInfo();
-            updateRoomInfo();
-            return;
-        }
-
-        if ("Equip".equals(action)) {
-            if (selectedItem instanceof Weapon weapon) {
-                Weapon old = player.getEquippedWeapon();
-                if (old != null && !player.addToInventory(old)) {
-                    outputText("Cannot swap weapons because your bag is full.");
-                    return;
-                }
-                player.equipWeapon(weapon);
-                player.getInventory().remove(weapon);
-                outputText("Equipped weapon: " + weapon.getName());
-            } else if (selectedItem instanceof Armor armor) {
-                Armor old = player.getEquippedArmor();
-                if (old != null && !player.addToInventory(old)) {
-                    outputText("Cannot swap armor because your bag is full.");
-                    return;
-                }
-                player.equipArmor(armor);
-                player.getInventory().remove(armor);
-                outputText("Equipped armor: " + armor.getName());
-            }
-            updatePlayerInfo();
-            updateRoomInfo();
-        }
+        updatePlayerInfo();
+        updateRoomInfo();
+        updateMapGrid();
     }
 
     private void inventoryQuickAction(String action) {
@@ -1820,7 +1862,7 @@ public class GameGUI extends Application {
             return;
         }
 
-        Item selectedItem = player.getItemByName(selectedLabel.trim());
+        Item selectedItem = player.getItemByName(labelToItemName(selectedLabel));
         if (selectedItem == null) {
             outputText("Select a valid item from your inventory list.");
             return;
@@ -1836,6 +1878,9 @@ public class GameGUI extends Application {
             if (player.useItem(selectedItem)) {
                 int hpAfter = player.getCurrentHP();
                 outputText("Used " + selectedItem.getName() + ". HP: " + hpBefore + " -> " + hpAfter);
+                if (activeSaveSlot > 0) {
+                    SaveManager.saveGame(activeSaveSlot, player, game);
+                }
             } else {
                 outputText("You cannot use that item right now.");
             }
@@ -1854,6 +1899,9 @@ public class GameGUI extends Application {
                 player.equipWeapon(weapon);
                 player.getInventory().remove(weapon);
                 outputText("Equipped weapon: " + weapon.getName());
+                if (activeSaveSlot > 0) {
+                    SaveManager.saveGame(activeSaveSlot, player, game);
+                }
             } else if (selectedItem instanceof Armor armor) {
                 Armor old = player.getEquippedArmor();
                 if (old != null && !player.addToInventory(old)) {
@@ -1863,9 +1911,108 @@ public class GameGUI extends Application {
                 player.equipArmor(armor);
                 player.getInventory().remove(armor);
                 outputText("Equipped armor: " + armor.getName());
+                if (activeSaveSlot > 0) {
+                    SaveManager.saveGame(activeSaveSlot, player, game);
+                }
             }
             updatePlayerInfo();
             updateRoomInfo();
+        }
+    }
+
+    private String labelToItemName(String label) {
+        if (label == null)
+            return null;
+        return label.replaceAll("\\s+x\\d+$", "").trim();
+    }
+
+    private void inventoryInspectSelected() {
+        if (lstInventory == null || player == null)
+            return;
+        String selectedLabel = lstInventory.getSelectionModel().getSelectedItem();
+        if (selectedLabel == null || selectedLabel.isBlank() || selectedLabel.equals("Your inventory is empty."))
+            return;
+        Item item = player.getItemByName(labelToItemName(selectedLabel));
+        if (item == null) {
+            outputText("Select a valid item to inspect.");
+            return;
+        }
+        outputText(item.getInfo());
+    }
+
+    private void inventoryDropSelected() {
+        if (player == null || lstInventory == null)
+            return;
+        String selectedLabel = lstInventory.getSelectionModel().getSelectedItem();
+        if (selectedLabel == null || selectedLabel.isBlank() || selectedLabel.equals("Your inventory is empty."))
+            return;
+        Item item = player.getItemByName(labelToItemName(selectedLabel));
+        if (item == null) {
+            outputText("Select a valid item to drop.");
+            return;
+        }
+        Alert a = new Alert(Alert.AlertType.CONFIRMATION);
+        a.setTitle("Drop Item");
+        a.setHeaderText("Drop " + item.getName() + "?");
+        styleDialog(a);
+        Optional<ButtonType> res = a.showAndWait();
+        restoreKeyboardFocus();
+        if (res.isPresent() && res.get() == ButtonType.OK) {
+            if (player.dropItem(item)) {
+                outputText("Dropped " + item.getName() + " into the room.");
+                updatePlayerInfo();
+                updateRoomInfo();
+                updateMapGrid();
+                if (activeSaveSlot > 0) {
+                    SaveManager.saveGame(activeSaveSlot, player, game);
+                }
+            } else {
+                outputText("Could not drop that item.");
+            }
+        }
+    }
+
+    private void inventoryUnequipSelected() {
+        if (player == null)
+            return;
+        List<String> opts = new ArrayList<>();
+        if (player.getEquippedWeapon() != null)
+            opts.add("Weapon: " + player.getEquippedWeapon().getName());
+        if (player.getEquippedArmor() != null)
+            opts.add("Armor: " + player.getEquippedArmor().getName());
+        if (opts.isEmpty()) {
+            outputText("You have nothing equipped to unequip.");
+            return;
+        }
+        ChoiceDialog<String> dlg = new ChoiceDialog<>(opts.get(0), opts);
+        dlg.setTitle("Unequip");
+        dlg.setHeaderText("Choose equipment to unequip");
+        styleDialog(dlg);
+        Optional<String> sel = dlg.showAndWait();
+        restoreKeyboardFocus();
+        if (sel.isEmpty())
+            return;
+        String choice = sel.get();
+        if (choice.startsWith("Weapon") && player.getEquippedWeapon() != null) {
+            if (player.unequipWeapon()) {
+                outputText("Unequipped weapon.");
+                updatePlayerInfo();
+                if (activeSaveSlot > 0) {
+                    SaveManager.saveGame(activeSaveSlot, player, game);
+                }
+            } else {
+                outputText("Cannot unequip weapon (bag may be full).");
+            }
+        } else if (choice.startsWith("Armor") && player.getEquippedArmor() != null) {
+            if (player.unequipArmor()) {
+                outputText("Unequipped armor.");
+                updatePlayerInfo();
+                if (activeSaveSlot > 0) {
+                    SaveManager.saveGame(activeSaveSlot, player, game);
+                }
+            } else {
+                outputText("Cannot unequip armor (bag may be full).");
+            }
         }
     }
 
@@ -1945,6 +2092,24 @@ public class GameGUI extends Application {
             return;
         }
 
+        // Inventory-specific hotkeys when the inventory list is visible.
+        // Require Ctrl to avoid conflicting with movement / other UI keys.
+        if ((lstInventory != null && isNodeVisible(lstInventory)) && e.isControlDown()) {
+            if (e.getCode() == KeyCode.D) {
+                inventoryDropSelected();
+                e.consume();
+                return;
+            } else if (e.getCode() == KeyCode.I) {
+                inventoryInspectSelected();
+                e.consume();
+                return;
+            } else if (e.getCode() == KeyCode.U) {
+                inventoryUnequipSelected();
+                e.consume();
+                return;
+            }
+        }
+
         if (btnNewGame != null && isNodeVisible(btnNewGame)) {
             if (e.getCode() == KeyCode.N) {
                 btnNewGame.fire();
@@ -1987,7 +2152,9 @@ public class GameGUI extends Application {
                 btnExplorePuzzleText.fire();
             } else if (e.getCode() == KeyCode.ENTER) {
                 btnSubmit.fire();
-            } else if (activePuzzleType == PuzzleUIType.NUMBER_GUESS) {
+            } else if (activePuzzleType == PuzzleUIType.NUMBER_GUESS
+                    || activePuzzleType == PuzzleUIType.RPS
+                    || activePuzzleType == PuzzleUIType.SELECTION) {
                 String guess = switch (e.getCode()) {
                     case DIGIT1, NUMPAD1 -> "1";
                     case DIGIT2, NUMPAD2 -> "2";
@@ -2038,7 +2205,8 @@ public class GameGUI extends Application {
             } else if (e.getCode() == KeyCode.G) {
                 btnEquipFromBag.fire();
             } else if (e.getCode() == KeyCode.T) {
-                btnStatus.fire();
+                // Status button removed; refresh player info display instead
+                updatePlayerInfo();
             }
         }
     }
@@ -2411,6 +2579,9 @@ public class GameGUI extends Application {
     /** Save current game state to the given slot and show a brief confirmation. */
     private void performSave(int slot) {
         boolean ok = SaveManager.saveGame(slot, player, game);
+        if (ok) {
+            activeSaveSlot = slot;
+        }
         String msg = ok
                 ? "Game saved to Slot " + slot + "."
                 : "Save failed for Slot " + slot + " – check console for details.";
@@ -2425,6 +2596,7 @@ public class GameGUI extends Application {
             return;
         }
         player = loaded;
+        activeSaveSlot = slot;
         selectedRoomNumber = player.getLocation();
         Room startRoom = game.getRoomByNumber(selectedRoomNumber);
         if (startRoom != null) {
@@ -2457,6 +2629,7 @@ public class GameGUI extends Application {
         }
         player = Player.loadFromCsv(
                 SaveManager.SAVES_DIR + SaveManager.BASE_SLOT + "/player.csv", game);
+        activeSaveSlot = 0;
         selectedRoomNumber = player.getLocation();
         Room startRoom = game.getRoomByNumber(selectedRoomNumber);
         if (startRoom != null) {
@@ -2580,10 +2753,46 @@ public class GameGUI extends Application {
 
             @Override
             public void showWinScreen(WinType winType) {
-                setGameState(GameState.GAME_OVER);
+                // Present a victory dialog offering options to continue, restart,
+                // load, or quit instead of immediately closing the game.
                 outputText(winType == WinType.CLEANSE ? "Cleanse ending achieved." : "Escape ending achieved.");
+                showVictoryPopup(winType);
             }
         };
+    }
+
+    private void showVictoryPopup(WinType winType) {
+        Alert dialog = new Alert(Alert.AlertType.NONE);
+        dialog.setTitle("Victory!");
+        dialog.setHeaderText(winType == WinType.CLEANSE ? "Cleanse ending achieved." : "Escape ending achieved.");
+        ButtonType btnContinue = new ButtonType("Continue Exploring", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnRestart = new ButtonType("Restart Game", ButtonBar.ButtonData.APPLY);
+        ButtonType btnLoad = new ButtonType("Load Game", ButtonBar.ButtonData.OTHER);
+        ButtonType btnQuit = new ButtonType("Quit", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getButtonTypes().setAll(btnContinue, btnRestart, btnLoad, btnQuit);
+        styleDialog(dialog);
+
+        Optional<ButtonType> res = dialog.showAndWait();
+        restoreKeyboardFocus();
+        if (res.isEmpty())
+            return;
+
+        ButtonType chosen = res.get();
+        if (chosen == btnContinue) {
+            setGameState(GameState.EXPLORATION);
+            return; // leave current world as-is
+        }
+        if (chosen == btnRestart) {
+            resetGame();
+            return;
+        }
+        if (chosen == btnLoad) {
+            showLoadDialog();
+            return;
+        }
+        if (chosen == btnQuit) {
+            Platform.exit();
+        }
     }
 
     private void showGameOver(String message) {

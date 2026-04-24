@@ -1,17 +1,17 @@
-ItemID,pickedUp,equipped,used
-I01,false,false,false
-I02,false,false,false
-I03,false,false,false
-I04,true,false,false
-I05,true,false,false
-I06,false,false,false
-I07,false,false,false
-I08,false,false,false
-I09,false,false,false
-I10,false,false,false
-I11,false,false,false
-I12,false,false,false
-I13,false,false,false
-I14,false,false,false
-I15,false,false,false
-I16,false,false,false
+ItemID,Name,RoomID,pickedUp,equipped,used,count
+I01,Rusting Armor,GY-01,false,false,false,0
+I02,Police Armor,TH-02,false,false,false,0
+I03,Military Armor,GS-03,false,false,false,0
+I04,Health Potion,GH-02,false,false,false,0
+I05,Health Potion,GH-02,false,false,false,0
+I06,Jack Daniel’s,SL-01,false,false,false,0
+I07,Hearty Meal,SL-02,false,false,false,0
+I08,Health Potion,GH-02,false,false,false,0
+I09,Prison Key,RD-03,true,false,false,1
+I10,Poker Chips,GH-03,false,false,false,0
+I11,Office Keys,TH-03,false,false,false,0
+I12,Crude Dagger,CH-04,false,true,false,0
+I13,Steel Sword,SL-04,false,false,false,0
+I14,Assassin's Dagger,GS-04,false,false,false,0
+I15,Crossbow,GH-04,false,false,false,0
+I16,‘Old Reliable’ Shotgun,GS-02,false,false,false,0
