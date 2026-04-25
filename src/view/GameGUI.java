@@ -37,6 +37,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
@@ -45,6 +47,7 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -95,6 +98,9 @@ public class GameGUI extends Application {
     private static final String UI_PANEL_STYLE = "-fx-background-color: #1f2937; -fx-border-color: #374151; -fx-border-width: 1; -fx-border-radius: 8; -fx-background-radius: 8;";
     private static final double MAP_NODE_SIZE = 14;
     private static final double MAP_PADDING = 20;
+    private static final String BGM_RESOURCE_PATH = "/sound/lavender_town_theme.mp3";
+    private static final double BGM_DEFAULT_VOLUME = 0.25;
+    private static final double BGM_VOLUME_STEP = 0.1;
 
     private VBox saveQuitBox;
     private VBox mainMenuPanel;
@@ -104,6 +110,7 @@ public class GameGUI extends Application {
     private VBox puzzleCardPanel;
     private VBox gameOverPanel;
     private VBox centerColumn;
+    private VBox audioControlsBox;
     private Button btnSaveMenu;
     private Button btnQuitMenu;
     private Button btnNewGame;
@@ -137,6 +144,9 @@ public class GameGUI extends Application {
     private Button btnLoadGameOver;
     private Button btnRestartGameOver;
     private Button btnQuitGameOver;
+    private Button btnToggleMute;
+    private Button btnVolumeDown;
+    private Button btnVolumeUp;
 
     private Label lblPuzzleNarrative;
     private Label lblPuzzleAttemptsInline;
@@ -191,8 +201,11 @@ public class GameGUI extends Application {
     private ListView<String> lstStatusEffects;
     private Label lblStatusHeader;
     private Label lblStatusDescription;
+    private Label lblVolumeValue;
     private ListView<String> lstInventory;
     private CombatSystem combatSystem;
+    private MediaPlayer bgmPlayer;
+    private double cachedVolumeBeforeMute = BGM_DEFAULT_VOLUME;
 
     private record MapPoint(double x, double y, int rowIndex, int colIndex) {
     }
@@ -287,11 +300,18 @@ public class GameGUI extends Application {
             stage.setAlwaysOnTop(false);
         });
 
+        initializeBgm();
+
         updatePlayerInfo();
         updateRoomInfo();
         updateMapGrid();
         setGameState(GameState.MAIN_MENU);
         restoreKeyboardFocus();
+    }
+
+    @Override
+    public void stop() {
+        stopBgm();
     }
 
     private VBox createLeftColumn() {
@@ -316,8 +336,9 @@ public class GameGUI extends Application {
         scrollPane.setFitToHeight(true);
         scrollPane.setStyle("-fx-background: transparent; -fx-control-inner-background: transparent;");
         saveQuitBox = createSaveQuitBox();
+        audioControlsBox = createAudioControlsBox();
 
-        VBox wrapper = new VBox(scrollPane, saveQuitBox);
+        VBox wrapper = new VBox(8, scrollPane, saveQuitBox, audioControlsBox);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         wrapper.setPrefWidth(340);
         wrapper.setMinWidth(280);
@@ -859,6 +880,137 @@ public class GameGUI extends Application {
 
         box.getChildren().addAll(title, btnSaveMenu, btnQuitMenu);
         return box;
+    }
+
+    private VBox createAudioControlsBox() {
+        VBox box = new VBox(8);
+        box.setPadding(new Insets(10));
+        box.setStyle(UI_PANEL_STYLE);
+
+        Label title = createSectionLabel("Audio");
+        title.setFont(Font.font(UI_FONT, FontWeight.BOLD, 14));
+
+        lblVolumeValue = createSectionLabel("Volume: --");
+
+        btnToggleMute = new Button("Mute");
+        btnToggleMute.setPrefWidth(Double.MAX_VALUE);
+        btnToggleMute.setOnAction(e -> toggleMute());
+
+        btnVolumeDown = new Button("Volume -");
+        btnVolumeUp = new Button("Volume +");
+        btnVolumeDown.setPrefWidth(120);
+        btnVolumeUp.setPrefWidth(120);
+        btnVolumeDown.setOnAction(e -> adjustBgmVolume(-BGM_VOLUME_STEP));
+        btnVolumeUp.setOnAction(e -> adjustBgmVolume(BGM_VOLUME_STEP));
+
+        HBox volumeButtons = new HBox(8, btnVolumeDown, btnVolumeUp);
+        volumeButtons.setAlignment(Pos.CENTER);
+
+        box.getChildren().addAll(title, lblVolumeValue, btnToggleMute, volumeButtons);
+        updateAudioControls();
+        return box;
+    }
+
+    private void initializeBgm() {
+        try {
+            java.net.URL resource = getClass().getResource(BGM_RESOURCE_PATH);
+            if (resource == null) {
+                System.out.println("BGM resource not found: " + BGM_RESOURCE_PATH);
+                updateAudioControls();
+                return;
+            }
+
+            Media media = new Media(resource.toExternalForm());
+            bgmPlayer = new MediaPlayer(media);
+            bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            bgmPlayer.setVolume(BGM_DEFAULT_VOLUME);
+            cachedVolumeBeforeMute = BGM_DEFAULT_VOLUME;
+
+            bgmPlayer.setOnReady(() -> {
+                bgmPlayer.play();
+                updateAudioControls();
+            });
+            bgmPlayer.setOnError(() -> {
+                System.out.println("BGM playback error: " + bgmPlayer.getError());
+                updateAudioControls();
+            });
+
+            updateAudioControls();
+        } catch (Exception ex) {
+            System.out.println("Unable to initialize BGM: " + ex.getMessage());
+            updateAudioControls();
+        }
+    }
+
+    private void stopBgm() {
+        if (bgmPlayer == null) {
+            return;
+        }
+        bgmPlayer.stop();
+        bgmPlayer.dispose();
+        bgmPlayer = null;
+        updateAudioControls();
+    }
+
+    private void toggleMute() {
+        if (bgmPlayer == null) {
+            return;
+        }
+
+        if (bgmPlayer.isMute()) {
+            bgmPlayer.setMute(false);
+            if (bgmPlayer.getVolume() <= 0) {
+                bgmPlayer.setVolume(Math.max(BGM_VOLUME_STEP, cachedVolumeBeforeMute));
+            }
+        } else {
+            cachedVolumeBeforeMute = Math.max(BGM_VOLUME_STEP, bgmPlayer.getVolume());
+            bgmPlayer.setMute(true);
+        }
+
+        if (bgmPlayer.getStatus() == MediaPlayer.Status.STOPPED) {
+            bgmPlayer.seek(Duration.ZERO);
+            bgmPlayer.play();
+        }
+        updateAudioControls();
+    }
+
+    private void adjustBgmVolume(double delta) {
+        if (bgmPlayer == null) {
+            return;
+        }
+
+        double volume = clampVolume(bgmPlayer.getVolume() + delta);
+        bgmPlayer.setMute(false);
+        bgmPlayer.setVolume(volume);
+        if (volume > 0) {
+            cachedVolumeBeforeMute = volume;
+        }
+        updateAudioControls();
+    }
+
+    private double clampVolume(double value) {
+        return Math.max(0.0, Math.min(1.0, value));
+    }
+
+    private void updateAudioControls() {
+        if (btnToggleMute == null || btnVolumeDown == null || btnVolumeUp == null || lblVolumeValue == null) {
+            return;
+        }
+
+        boolean available = bgmPlayer != null;
+        btnToggleMute.setDisable(!available);
+        btnVolumeDown.setDisable(!available);
+        btnVolumeUp.setDisable(!available);
+
+        if (!available) {
+            lblVolumeValue.setText("Volume: N/A");
+            btnToggleMute.setText("Mute");
+            return;
+        }
+
+        int percent = (int) Math.round(bgmPlayer.getVolume() * 100.0);
+        lblVolumeValue.setText("Volume: " + percent + "%" + (bgmPlayer.isMute() ? " (muted)" : ""));
+        btnToggleMute.setText(bgmPlayer.isMute() ? "Unmute" : "Mute");
     }
 
     private VBox createMainMenuPanel() {
