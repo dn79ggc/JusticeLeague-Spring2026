@@ -935,76 +935,115 @@ public class GameGUI extends Application {
             stopBgm();
         }
 
-        try {
-            java.net.URL resource = findBgmResource();
-            if (resource == null) {
-                logAudioDebug("BGM resource not found in candidates: " + String.join(", ", BGM_RESOURCE_CANDIDATES));
-                setAudioStatus("Audio: resource missing");
-                updateAudioControls();
-                return;
+        List<java.net.URL> resources = resolveBgmCandidateResources();
+        if (resources.isEmpty()) {
+            logAudioDebug("BGM resource not found in candidates: " + String.join(", ", BGM_RESOURCE_CANDIDATES));
+            setAudioStatus("Audio: resource missing");
+            updateAudioControls();
+            return;
+        }
+
+        setAudioStatus("Audio status: LOADING");
+        updateAudioControls();
+        tryInitializeBgmCandidate(resources, 0);
+    }
+
+    private List<java.net.URL> resolveBgmCandidateResources() {
+        List<java.net.URL> resources = new ArrayList<>();
+        for (String candidate : BGM_RESOURCE_CANDIDATES) {
+            java.net.URL resource = getClass().getResource(candidate);
+            if (resource != null) {
+                resources.add(resource);
+            } else {
+                logAudioDebug("Candidate not found on classpath: " + candidate);
             }
+        }
+        return resources;
+    }
 
-            logAudioDebug("Initializing BGM from: " + resource);
+    private void tryInitializeBgmCandidate(List<java.net.URL> resources, int index) {
+        if (index >= resources.size()) {
+            setAudioStatus("Audio error: no playable source");
+            logAudioDebug("All candidate audio files failed to initialize.");
+            updateAudioControls();
+            return;
+        }
+
+        java.net.URL resource = resources.get(index);
+        logAudioDebug("Initializing BGM candidate " + (index + 1) + "/" + resources.size() + ": " + resource);
+        setAudioStatus("Audio: probing " + resource.getPath());
+
+        try {
             Media media = new Media(resource.toExternalForm());
+            final MediaPlayer candidatePlayer = new MediaPlayer(media);
+            final boolean[] settled = { false };
+
+            Runnable failover = () -> {
+                if (settled[0]) {
+                    return;
+                }
+                settled[0] = true;
+                candidatePlayer.dispose();
+                tryInitializeBgmCandidate(resources, index + 1);
+            };
+
             media.setOnError(() -> {
-                logAudioDebug("Media decode error: " + media.getError());
-                setAudioStatus("Audio error: media decode failed");
-                updateAudioControls();
+                logAudioDebug("Media decode error for " + resource + ": " + media.getError());
+                failover.run();
             });
 
-            bgmPlayer = new MediaPlayer(media);
-            bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-            bgmPlayer.setVolume(BGM_DEFAULT_VOLUME);
-            cachedVolumeBeforeMute = BGM_DEFAULT_VOLUME;
-
-            bgmPlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> {
-                setAudioStatus("Audio status: " + newStatus);
-                updateAudioControls();
+            candidatePlayer.setOnError(() -> {
+                logAudioDebug("Player init/playback error for " + resource + ": " + candidatePlayer.getError());
+                failover.run();
             });
 
-            bgmPlayer.setOnReady(() -> {
-                logAudioDebug("BGM ready. Starting playback.");
+            candidatePlayer.setOnReady(() -> {
+                if (settled[0]) {
+                    return;
+                }
+                settled[0] = true;
+
+                bgmPlayer = candidatePlayer;
+                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                bgmPlayer.setVolume(BGM_DEFAULT_VOLUME);
+                cachedVolumeBeforeMute = BGM_DEFAULT_VOLUME;
+                bindActivePlayerHandlers(bgmPlayer);
+
+                logAudioDebug("BGM ready. Using source: " + resource);
                 setAudioStatus("Audio status: READY");
                 bgmPlayer.play();
                 updateAudioControls();
             });
-            bgmPlayer.setOnPlaying(() -> {
-                setAudioStatus("Audio status: PLAYING");
-                logAudioDebug("BGM is playing.");
-            });
-            bgmPlayer.setOnPaused(() -> setAudioStatus("Audio status: PAUSED"));
-            bgmPlayer.setOnStopped(() -> setAudioStatus("Audio status: STOPPED"));
-            bgmPlayer.setOnStalled(() -> {
-                setAudioStatus("Audio status: STALLED");
-                logAudioDebug("BGM stalled during playback.");
-            });
-            bgmPlayer.setOnHalted(() -> {
-                setAudioStatus("Audio status: HALTED");
-                logAudioDebug("BGM halted by media engine.");
-            });
-            bgmPlayer.setOnError(() -> {
-                logAudioDebug("BGM playback error: " + bgmPlayer.getError());
-                setAudioStatus("Audio error: playback failed");
-                updateAudioControls();
-            });
-
-            setAudioStatus("Audio status: LOADING");
-            updateAudioControls();
         } catch (Exception ex) {
-            logAudioDebug("Unable to initialize BGM: " + ex.getMessage());
-            setAudioStatus("Audio error: initialization failed");
-            updateAudioControls();
+            logAudioDebug("Unable to initialize candidate " + resource + ": " + ex.getMessage());
+            tryInitializeBgmCandidate(resources, index + 1);
         }
     }
 
-    private java.net.URL findBgmResource() {
-        for (String candidate : BGM_RESOURCE_CANDIDATES) {
-            java.net.URL resource = getClass().getResource(candidate);
-            if (resource != null) {
-                return resource;
-            }
-        }
-        return null;
+    private void bindActivePlayerHandlers(MediaPlayer player) {
+        player.statusProperty().addListener((obs, oldStatus, newStatus) -> {
+            setAudioStatus("Audio status: " + newStatus);
+            updateAudioControls();
+        });
+        player.setOnPlaying(() -> {
+            setAudioStatus("Audio status: PLAYING");
+            logAudioDebug("BGM is playing.");
+        });
+        player.setOnPaused(() -> setAudioStatus("Audio status: PAUSED"));
+        player.setOnStopped(() -> setAudioStatus("Audio status: STOPPED"));
+        player.setOnStalled(() -> {
+            setAudioStatus("Audio status: STALLED");
+            logAudioDebug("BGM stalled during playback.");
+        });
+        player.setOnHalted(() -> {
+            setAudioStatus("Audio status: HALTED");
+            logAudioDebug("BGM halted by media engine.");
+        });
+        player.setOnError(() -> {
+            logAudioDebug("BGM playback error: " + player.getError());
+            setAudioStatus("Audio error: playback failed");
+            updateAudioControls();
+        });
     }
 
     private void stopBgm() {
