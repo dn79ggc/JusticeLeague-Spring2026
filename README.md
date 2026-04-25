@@ -43,6 +43,53 @@ On Windows PowerShell, use `./gradlew.bat` if needed:
 
 JavaFX dependencies are downloaded automatically through Gradle -- no extra IDE-specific JavaFX module setup is required.
 
+### Windows Requirements
+
+If you are running on Windows, use this checklist:
+
+1. Install Java 26 (JDK), then confirm with:
+
+```powershell
+java -version
+```
+
+2. Ensure `JAVA_HOME` points to the Java 26 JDK.
+3. Use the Gradle wrapper for all commands (`gradlew.bat`).
+4. If your OS edition is **Windows N/KN**, install the **Media Feature Pack** (required for media playback APIs).
+5. Make sure normal system audio works and the game process is not muted in the Windows volume mixer.
+
+### Windows Build and Run
+
+From the project root in PowerShell:
+
+```powershell
+# Clean and build
+./gradlew.bat clean build --no-daemon --console=plain
+
+# Run the JavaFX GUI
+./gradlew.bat runGui --no-daemon --console=plain
+```
+
+### Windows Audio (BGM) Troubleshooting
+
+If the GUI launches but BGM is silent:
+
+1. Verify the BGM file exists:
+  - `src/resources/sound/lavender_town_theme.mp3`
+2. Confirm resources are copied into build output:
+
+```powershell
+./gradlew.bat processResources --no-daemon --console=plain
+Get-ChildItem .\build\resources\main\sound
+```
+
+3. Watch terminal output for startup errors such as:
+  - `BGM resource not found`
+  - `BGM playback error`
+4. Open **Volume Mixer** and confirm Java/Gradle app volume is not muted.
+5. If using Windows N/KN and audio still fails, reinstall/repair the Media Feature Pack and reboot.
+6. Re-run the app after any audio subsystem changes.
+
 ---
 
 ## Project Structure

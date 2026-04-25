@@ -99,6 +99,10 @@ public class GameGUI extends Application {
     private static final double MAP_NODE_SIZE = 14;
     private static final double MAP_PADDING = 20;
     private static final String BGM_RESOURCE_PATH = "/sound/lavender_town_theme.mp3";
+        private static final String[] BGM_RESOURCE_CANDIDATES = {
+            BGM_RESOURCE_PATH,
+            "/sound/lavender_town_theme.wav"
+        };
     private static final double BGM_DEFAULT_VOLUME = 0.25;
     private static final double BGM_VOLUME_STEP = 0.1;
 
@@ -147,6 +151,8 @@ public class GameGUI extends Application {
     private Button btnToggleMute;
     private Button btnVolumeDown;
     private Button btnVolumeUp;
+    private Button btnAudioRetry;
+    private Button btnAudioTest;
 
     private Label lblPuzzleNarrative;
     private Label lblPuzzleAttemptsInline;
@@ -202,6 +208,7 @@ public class GameGUI extends Application {
     private Label lblStatusHeader;
     private Label lblStatusDescription;
     private Label lblVolumeValue;
+    private Label lblAudioStatus;
     private ListView<String> lstInventory;
     private CombatSystem combatSystem;
     private MediaPlayer bgmPlayer;
@@ -891,6 +898,8 @@ public class GameGUI extends Application {
         title.setFont(Font.font(UI_FONT, FontWeight.BOLD, 14));
 
         lblVolumeValue = createSectionLabel("Volume: --");
+        lblAudioStatus = createSectionLabel("Audio: Initializing...");
+        lblAudioStatus.setWrapText(true);
 
         btnToggleMute = new Button("Mute");
         btnToggleMute.setPrefWidth(Double.MAX_VALUE);
@@ -906,40 +915,96 @@ public class GameGUI extends Application {
         HBox volumeButtons = new HBox(8, btnVolumeDown, btnVolumeUp);
         volumeButtons.setAlignment(Pos.CENTER);
 
-        box.getChildren().addAll(title, lblVolumeValue, btnToggleMute, volumeButtons);
+        btnAudioRetry = new Button("Retry Audio Init");
+        btnAudioTest = new Button("Test Play");
+        btnAudioRetry.setPrefWidth(120);
+        btnAudioTest.setPrefWidth(120);
+        btnAudioRetry.setOnAction(e -> initializeBgm());
+        btnAudioTest.setOnAction(e -> testBgmPlayback());
+
+        HBox debugButtons = new HBox(8, btnAudioRetry, btnAudioTest);
+        debugButtons.setAlignment(Pos.CENTER);
+
+        box.getChildren().addAll(title, lblVolumeValue, lblAudioStatus, btnToggleMute, volumeButtons, debugButtons);
         updateAudioControls();
         return box;
     }
 
     private void initializeBgm() {
+        if (bgmPlayer != null) {
+            stopBgm();
+        }
+
         try {
-            java.net.URL resource = getClass().getResource(BGM_RESOURCE_PATH);
+            java.net.URL resource = findBgmResource();
             if (resource == null) {
-                System.out.println("BGM resource not found: " + BGM_RESOURCE_PATH);
+                logAudioDebug("BGM resource not found in candidates: " + String.join(", ", BGM_RESOURCE_CANDIDATES));
+                setAudioStatus("Audio: resource missing");
                 updateAudioControls();
                 return;
             }
 
+            logAudioDebug("Initializing BGM from: " + resource);
             Media media = new Media(resource.toExternalForm());
+            media.setOnError(() -> {
+                logAudioDebug("Media decode error: " + media.getError());
+                setAudioStatus("Audio error: media decode failed");
+                updateAudioControls();
+            });
+
             bgmPlayer = new MediaPlayer(media);
             bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
             bgmPlayer.setVolume(BGM_DEFAULT_VOLUME);
             cachedVolumeBeforeMute = BGM_DEFAULT_VOLUME;
 
-            bgmPlayer.setOnReady(() -> {
-                bgmPlayer.play();
-                updateAudioControls();
-            });
-            bgmPlayer.setOnError(() -> {
-                System.out.println("BGM playback error: " + bgmPlayer.getError());
+            bgmPlayer.statusProperty().addListener((obs, oldStatus, newStatus) -> {
+                setAudioStatus("Audio status: " + newStatus);
                 updateAudioControls();
             });
 
+            bgmPlayer.setOnReady(() -> {
+                logAudioDebug("BGM ready. Starting playback.");
+                setAudioStatus("Audio status: READY");
+                bgmPlayer.play();
+                updateAudioControls();
+            });
+            bgmPlayer.setOnPlaying(() -> {
+                setAudioStatus("Audio status: PLAYING");
+                logAudioDebug("BGM is playing.");
+            });
+            bgmPlayer.setOnPaused(() -> setAudioStatus("Audio status: PAUSED"));
+            bgmPlayer.setOnStopped(() -> setAudioStatus("Audio status: STOPPED"));
+            bgmPlayer.setOnStalled(() -> {
+                setAudioStatus("Audio status: STALLED");
+                logAudioDebug("BGM stalled during playback.");
+            });
+            bgmPlayer.setOnHalted(() -> {
+                setAudioStatus("Audio status: HALTED");
+                logAudioDebug("BGM halted by media engine.");
+            });
+            bgmPlayer.setOnError(() -> {
+                logAudioDebug("BGM playback error: " + bgmPlayer.getError());
+                setAudioStatus("Audio error: playback failed");
+                updateAudioControls();
+            });
+
+            setAudioStatus("Audio status: LOADING");
             updateAudioControls();
         } catch (Exception ex) {
-            System.out.println("Unable to initialize BGM: " + ex.getMessage());
+            logAudioDebug("Unable to initialize BGM: " + ex.getMessage());
+            setAudioStatus("Audio error: initialization failed");
             updateAudioControls();
         }
+    }
+
+    private java.net.URL findBgmResource() {
+        for (String candidate : BGM_RESOURCE_CANDIDATES) {
+            java.net.URL resource = getClass().getResource(candidate);
+            if (resource != null) {
+                return resource;
+            }
+        }
+        return null;
     }
 
     private void stopBgm() {
@@ -949,6 +1014,26 @@ public class GameGUI extends Application {
         bgmPlayer.stop();
         bgmPlayer.dispose();
         bgmPlayer = null;
+        setAudioStatus("Audio status: STOPPED");
+        updateAudioControls();
+    }
+
+    private void testBgmPlayback() {
+        if (bgmPlayer == null) {
+            logAudioDebug("Test Play requested but audio player is unavailable.");
+            setAudioStatus("Audio unavailable: use Retry Audio Init");
+            updateAudioControls();
+            return;
+        }
+
+        bgmPlayer.setMute(false);
+        if (bgmPlayer.getVolume() <= 0.0) {
+            bgmPlayer.setVolume(Math.max(BGM_VOLUME_STEP, cachedVolumeBeforeMute));
+        }
+        bgmPlayer.seek(Duration.ZERO);
+        bgmPlayer.play();
+        setAudioStatus("Audio test: restarting playback from 0s");
+        logAudioDebug("Audio test playback started.");
         updateAudioControls();
     }
 
@@ -1001,6 +1086,12 @@ public class GameGUI extends Application {
         btnToggleMute.setDisable(!available);
         btnVolumeDown.setDisable(!available);
         btnVolumeUp.setDisable(!available);
+        if (btnAudioRetry != null) {
+            btnAudioRetry.setDisable(false);
+        }
+        if (btnAudioTest != null) {
+            btnAudioTest.setDisable(!available);
+        }
 
         if (!available) {
             lblVolumeValue.setText("Volume: N/A");
@@ -1011,6 +1102,20 @@ public class GameGUI extends Application {
         int percent = (int) Math.round(bgmPlayer.getVolume() * 100.0);
         lblVolumeValue.setText("Volume: " + percent + "%" + (bgmPlayer.isMute() ? " (muted)" : ""));
         btnToggleMute.setText(bgmPlayer.isMute() ? "Unmute" : "Mute");
+    }
+
+    private void setAudioStatus(String status) {
+        if (lblAudioStatus != null) {
+            lblAudioStatus.setText(status);
+        }
+    }
+
+    private void logAudioDebug(String message) {
+        String line = "[AUDIO] " + message;
+        System.out.println(line);
+        if (outputArea != null) {
+            outputText(line);
+        }
     }
 
     private VBox createMainMenuPanel() {
