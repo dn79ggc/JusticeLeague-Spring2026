@@ -233,3 +233,83 @@ java -version
 ```
 
 It should report something like `java version "26"`.
+
+---
+
+## Gameplay Features
+
+- **Room Exploration**: Navigate a 23-room game world with interconnected areas
+- **Combat System**: Turn-based combat with attack, defend, flee, and item use mechanics
+- **Puzzles**: Seven unique puzzle types (riddles, scrambles, number guessing, rock-paper-scissors, poker, dice, selection)
+- **Inventory Management**: Pick up, drop, equip, unequip, inspect, and use items
+- **Save/Load**: Three named save slots with persistent game state (JSON + CSV)
+- **Status Effects**: Timed buffs/debuffs applied during combat
+- **Monster Abilities**: Special attacks with custom effects
+- **Item Types**: Weapons, armor, consumables (potions, food, alcohol), and key items
+- **Guided UI**: Context-sensitive buttons and informative panels for exploration, combat, and puzzle-solving
+
+---
+
+## Controls
+
+### GUI Hotkeys
+
+- **F5** – Quick save to current slot
+- **Ctrl+L** – Load game from selected slot
+- **Ctrl+S** – Save game to selected slot
+- **Ctrl+I** – Inspect selected inventory item
+- **Ctrl+E** – Equip selected inventory item
+- **Ctrl+D** – Drop selected inventory item
+- **Ctrl+U** – Unequip equipped item
+- **Arrow Keys / W/A/S/D** – Move between rooms (exploration mode)
+- **Mouse** – Click buttons, select inventory items, interact with puzzles
+
+### Puzzle Controls
+
+- **Text Input Puzzles** – Type answer and press Enter or click Submit
+- **Card Puzzles** – Click cards to reveal and score points
+- **Selection Puzzles** – Click or arrow-select from multiple-choice options
+
+---
+
+## Credits
+
+### Art Assets
+
+**Icons & Item Graphics**
+- **600+ RPGAdventure Items Asset Pack** by [Snakerser](https://itch.io/profile/snakerser)
+  - High-quality pixel art sprites for weapons, armor, consumables, keys, and other items
+  - Available on [Itch.io](https://snakerser.itch.io/)
+
+### Audio
+
+**Background Music (BGM)**
+- **Lavender Town Theme** from Pokémon Generation 3 (Ruby/Sapphire)
+  - Original composition by The Pokémon Company/Game Freak
+  - Used as the persistent in-game background music with looping playback
+  - Original title: "Lavender Town"
+
+---
+
+## Technical Stack
+
+- **Language**: Java 26
+- **GUI Framework**: JavaFX 26
+- **Data Persistence**: Gson 2.10.1 (JSON) + Tablesaw 0.44.0 (CSV)
+- **Build Tool**: Gradle with Java 26 toolchain
+- **Audio**: JavaFX MediaPlayer with MP3 support
+- **Architecture**: MVC (Model-View-Controller) with clear separation of concerns
+
+---
+
+## License & Attribution
+
+This project is a student game assignment for Spring 2026. All code contributions are original unless attributed to external libraries or frameworks.
+
+**Third-party assets used:**
+1. **600+ RPGAdventure Items Asset Pack** – Licensed under the asset pack's terms (check LICENSE.txt in the icons directory)
+2. **Pokémon BGM** – Used for educational/transformative game development purposes
+
+If you use this project or its assets, please maintain proper attribution to:
+- **Snakerser** for the item graphics
+- **The Pokémon Company** for the BGM

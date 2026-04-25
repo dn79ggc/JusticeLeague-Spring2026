@@ -5,6 +5,15 @@ bin/**/*.class
 *.log
 test_runs/
 *.meta.txt
+buildlog.txt
+cpout.txt
+depout.txt
+insight.txt
+
+# Temporary scripts and utilities
+analyze.ps1
+fix_emoji.py
+printcp.gradle
 
 # IDE files
 .idea/
@@ -23,7 +32,9 @@ target/
 .gradle/
 gradle-*.zip
 tmp-gradle*/
-buildlog.txt
+tmp/
+scripts/
+lib/
 
 # Local JavaFX SDK
 lib/javafx-sdk-26/

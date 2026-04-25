@@ -39,6 +39,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
@@ -99,12 +101,13 @@ public class GameGUI extends Application {
     private static final double MAP_NODE_SIZE = 14;
     private static final double MAP_PADDING = 20;
     private static final String BGM_RESOURCE_PATH = "/sound/lavender_town_theme.mp3";
-        private static final String[] BGM_RESOURCE_CANDIDATES = {
+    private static final String[] BGM_RESOURCE_CANDIDATES = {
             BGM_RESOURCE_PATH,
             "/sound/lavender_town_theme.wav"
-        };
+    };
     private static final double BGM_DEFAULT_VOLUME = 0.25;
-    private static final double BGM_VOLUME_STEP = 0.1;
+    // Use 5% increments for finer volume control
+    private static final double BGM_VOLUME_STEP = 0.05;
 
     private VBox saveQuitBox;
     private VBox mainMenuPanel;
@@ -740,7 +743,7 @@ public class GameGUI extends Application {
         // Make inventory tall enough to display up to 7 distinct slots
         lstInventory.setPrefHeight(220);
         lstInventory.setStyle(
-                "-fx-control-inner-background: #111827; -fx-background-color: #111827; -fx-border-color: #374151; -fx-border-width: 1;");
+                "-fx-control-inner-background: #111827; -fx-background-color: #111827; -fx-border-color: #374151; -fx-border-width: 1; -fx-font-size: 14; -fx-padding: 0;");
         lstInventory.setOnMouseClicked(e -> {
             if (e.getClickCount() >= 2) {
                 handleInventoryListAction();
@@ -749,6 +752,32 @@ public class GameGUI extends Application {
         lstInventory.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ENTER) {
                 handleInventoryListAction();
+            }
+        });
+        // Display items with icons from resource folder
+        lstInventory.setCellFactory(lv -> new ListCell<String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    setText(null);
+                } else {
+                    HBox itemBox = new HBox(8);
+                    itemBox.setAlignment(Pos.CENTER_LEFT);
+
+                    ImageView iconView = getItemIcon(item);
+                    if (iconView != null) {
+                        itemBox.getChildren().add(iconView);
+                    }
+
+                    Label label = new Label(item);
+                    label.setStyle("-fx-text-fill: #e5e7eb; -fx-wrap-text: true;");
+                    label.setWrapText(true);
+                    itemBox.getChildren().add(label);
+
+                    setGraphic(itemBox);
+                }
             }
         });
 
@@ -805,9 +834,12 @@ public class GameGUI extends Application {
 
         lblRoomName = createSectionLabel("Guard Post");
         lblRoomName.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
+        lblRoomName.setWrapText(true);
         lblRoomID = createSectionLabel("GH-02 · Guardhouse");
         lblRoomID.setTextFill(Color.web("#9ca3af"));
+        lblRoomID.setWrapText(true);
         lblExits = createSectionLabel("Exits: N  E  W");
+        lblExits.setWrapText(true);
         Label lblDescHeader = createSectionLabel("Description:");
         lblRoomDescription = createSectionLabel("A watchful guard post overlooking the eastern road.");
         lblRoomDescription.setWrapText(true);
@@ -821,13 +853,18 @@ public class GameGUI extends Application {
         box.setPadding(new Insets(10));
 
         lblEnemyName = createSectionLabel("No enemy");
+        lblEnemyName.setWrapText(true);
         Label lblEnemyHP = createSectionLabel("HP:");
         pbEnemyHP = new ProgressBar(0.0);
         pbEnemyHP.setPrefWidth(220);
         lblEnemyHPValues = createSectionLabel("0 / 0");
+        lblEnemyHPValues.setWrapText(true);
         lblWeakness = createSectionLabel("Weak: None");
+        lblWeakness.setWrapText(true);
         lblResistance = createSectionLabel("Resists: None");
+        lblResistance.setWrapText(true);
         lblMonsterStatus = createSectionLabel("Status: —");
+        lblMonsterStatus.setWrapText(true);
 
         box.getChildren().addAll(lblEnemyName, lblEnemyHP, pbEnemyHP, lblEnemyHPValues, new Separator(), lblWeakness,
                 lblResistance, lblMonsterStatus);
@@ -840,7 +877,9 @@ public class GameGUI extends Application {
 
         lblPuzzleNameInfo = createSectionLabel("—");
         lblPuzzleNameInfo.setFont(Font.font(UI_FONT, FontWeight.BOLD, 14));
+        lblPuzzleNameInfo.setWrapText(true);
         Label lblAttemptsLabel = createSectionLabel("Attempts remaining:");
+        lblAttemptsLabel.setWrapText(true);
         lblPuzzleAttemptsInfo = createSectionLabel("—");
         lblPuzzleAttemptsInfo.setFont(Font.font(UI_FONT, FontWeight.BOLD, 16));
         lblPuzzleAttemptsInfo.setTextFill(Color.web("#34d399"));
@@ -849,6 +888,7 @@ public class GameGUI extends Application {
         lblCardTotalInfo = createSectionLabel("");
         lblCardTotalInfo.setVisible(false);
         lblCardTotalInfo.setManaged(false);
+        lblCardTotalInfo.setWrapText(true);
 
         box.getChildren().addAll(lblPuzzleNameInfo, lblAttemptsLabel, lblPuzzleAttemptsInfo, lblWrongAnswersInfo,
                 lblCardTotalInfo);
@@ -905,8 +945,8 @@ public class GameGUI extends Application {
         btnToggleMute.setPrefWidth(Double.MAX_VALUE);
         btnToggleMute.setOnAction(e -> toggleMute());
 
-        btnVolumeDown = new Button("Volume -");
-        btnVolumeUp = new Button("Volume +");
+        btnVolumeDown = new Button("Volume -5%");
+        btnVolumeUp = new Button("Volume +5%");
         btnVolumeDown.setPrefWidth(120);
         btnVolumeUp.setPrefWidth(120);
         btnVolumeDown.setOnAction(e -> adjustBgmVolume(-BGM_VOLUME_STEP));
@@ -973,7 +1013,19 @@ public class GameGUI extends Application {
                 logAudioDebug("BGM is playing.");
             });
             bgmPlayer.setOnPaused(() -> setAudioStatus("Audio status: PAUSED"));
-            bgmPlayer.setOnStopped(() -> setAudioStatus("Audio status: STOPPED"));
+            bgmPlayer.setOnStopped(() -> {
+                setAudioStatus("Audio status: STOPPED");
+                // Restart BGM if it stops unexpectedly (unless muted)
+                if (bgmPlayer != null && !bgmPlayer.isMute() && bgmPlayer.getCycleCount() != 0) {
+                    Platform.runLater(() -> {
+                        if (bgmPlayer != null) {
+                            bgmPlayer.seek(Duration.ZERO);
+                            bgmPlayer.play();
+                            logAudioDebug("BGM restarted after stop.");
+                        }
+                    });
+                }
+            });
             bgmPlayer.setOnStalled(() -> {
                 setAudioStatus("Audio status: STALLED");
                 logAudioDebug("BGM stalled during playback.");
@@ -981,6 +1033,16 @@ public class GameGUI extends Application {
             bgmPlayer.setOnHalted(() -> {
                 setAudioStatus("Audio status: HALTED");
                 logAudioDebug("BGM halted by media engine.");
+                // Restart on halt unless muted
+                if (bgmPlayer != null && !bgmPlayer.isMute()) {
+                    Platform.runLater(() -> {
+                        if (bgmPlayer != null) {
+                            bgmPlayer.seek(Duration.ZERO);
+                            bgmPlayer.play();
+                            logAudioDebug("BGM restarted after halt.");
+                        }
+                    });
+                }
             });
             bgmPlayer.setOnError(() -> {
                 logAudioDebug("BGM playback error: " + bgmPlayer.getError());
@@ -1668,6 +1730,95 @@ public class GameGUI extends Application {
         lstInventory.getItems().setAll(player.showInventory());
     }
 
+    private ImageView getItemIcon(String itemDisplay) {
+        // Map specific items to unique icon variants based on rarity and item name
+        if (itemDisplay == null || itemDisplay.isBlank()) {
+            return null;
+        }
+        String upper = itemDisplay.toUpperCase();
+        String iconPath = null;
+
+        // Specific weapon mappings - higher tiers get more ornate icons
+        if (upper.contains("ASSASSIN'S DAGGER") || upper.contains("ASSASSINS DAGGER")) {
+            // Legendary dagger
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/Dagger5.png";
+        } else if (upper.contains("CRUDE DAGGER")) {
+            // Uncommon dagger - basic
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/Dagger5.png";
+        } else if (upper.contains("DAGGER") || upper.contains("SPEAR") || upper.contains("AXE")) {
+            // Other daggers/melee
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/Dagger5.png";
+        }
+        // Swords
+        else if (upper.contains("STEEL SWORD")) {
+            // Rare sword
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/ShortSword10.png";
+        } else if (upper.contains("SWORD")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/ShortSword1.png";
+        }
+        // Ranged weapons
+        else if (upper.contains("OLD RELIABLE") || upper.contains("SHOTGUN")) {
+            // Legendary shotgun - fancy ranged
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/Bows20.png";
+        } else if (upper.contains("CROSSBOW")) {
+            // Epic crossbow
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/Bows12.png";
+        } else if (upper.contains("BOW")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/Bows1.png";
+        } else if (upper.contains("GUN")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/ToolsAndWeapons/Weapons/NoShadow/Bows15.png";
+        }
+        // Armor - specific by name and rarity
+        else if (upper.contains("MILITARY ARMOR")) {
+            // Legendary armor - most ornate
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/Armour/Chestplate/NoShadow/Chestplate15.png";
+        } else if (upper.contains("POLICE ARMOR")) {
+            // Rare armor
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/Armour/Chestplate/NoShadow/Chestplate8.png";
+        } else if (upper.contains("RUSTING ARMOR")) {
+            // Common armor - basic worn
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/Armour/Chestplate/NoShadow/Chestplate2.png";
+        } else if (upper.contains("ARMOR") || upper.contains("PLATE") || upper.contains("MAIL")) {
+            // Other armor
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/Armour/Chestplate/NoShadow/Chestplate1.png";
+        }
+        // Consumables - Health/Potions
+        else if (upper.contains("POTION") || upper.contains("ELIXIR")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/PotionAndDrinks/NoShadow/Potions5.png";
+        }
+        // Consumables - Food
+        else if (upper.contains("MEAL") || upper.contains("BREAD") || upper.contains("FOOD")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/FruitsAndVegis/NoShadow/Apple1.png";
+        }
+        // Consumables - Alcohol
+        else if (upper.contains("JACK") || upper.contains("WHISKEY") || upper.contains("BRANDY")
+                || upper.contains("WINE")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/PotionAndDrinks/NoShadow/WineCup1.png";
+        }
+        // Key Items
+        else if (upper.contains("KEY")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/Other/NoShadow/Keys1.png";
+        }
+        // Chips/Coins
+        else if (upper.contains("CHIP")) {
+            iconPath = "/icons/600+ RPGAdventure Items Asset Pack/CoinsGemsAndIngots/NoShadow/Coins1.png";
+        }
+
+        if (iconPath != null) {
+            try {
+                Image image = new Image(getClass().getResourceAsStream(iconPath));
+                ImageView imageView = new ImageView(image);
+                imageView.setFitWidth(24);
+                imageView.setFitHeight(24);
+                imageView.setPreserveRatio(true);
+                return imageView;
+            } catch (Exception e) {
+                logAudioDebug("Failed to load icon: " + iconPath);
+            }
+        }
+        return null;
+    }
+
     private void updateRoomInfo() {
         Room room = game.getRoomByNumber(selectedRoomNumber);
         if (room == null) {
@@ -2241,10 +2392,18 @@ public class GameGUI extends Application {
 
         Platform.runLater(() -> {
             for (Node labelNode : pane.lookupAll(".label")) {
+                if (labelNode instanceof Label) {
+                    Label label = (Label) labelNode;
+                    label.setWrapText(true);
+                }
                 labelNode.setStyle("-fx-text-fill: #f8fafc; -fx-font-weight: 600;");
             }
             Node contentLabel = pane.lookup(".content");
             if (contentLabel != null) {
+                if (contentLabel instanceof Label) {
+                    Label label = (Label) contentLabel;
+                    label.setWrapText(true);
+                }
                 contentLabel.setStyle("-fx-text-fill: #f8fafc;");
             }
         });

@@ -270,6 +270,44 @@ public class Player {
         this.equippedArmor = armor;
     }
 
+    /**
+     * Auto-equips the strongest weapon and armor from inventory.
+     * Sorts by damage/defense (descending), prioritizing higher tiers.
+     */
+    public void autoEquipStrongest() {
+        // Find strongest weapon
+        Weapon strongestWeapon = null;
+        int maxDamage = -1;
+        for (Item item : inventory) {
+            if (item instanceof Weapon) {
+                Weapon w = (Weapon) item;
+                if (w.getDamage() > maxDamage) {
+                    maxDamage = w.getDamage();
+                    strongestWeapon = w;
+                }
+            }
+        }
+        if (strongestWeapon != null) {
+            equipWeapon(strongestWeapon);
+        }
+
+        // Find strongest armor
+        Armor strongestArmor = null;
+        int maxDefense = -1;
+        for (Item item : inventory) {
+            if (item instanceof Armor) {
+                Armor a = (Armor) item;
+                if (a.getDefense() > maxDefense) {
+                    maxDefense = a.getDefense();
+                    strongestArmor = a;
+                }
+            }
+        }
+        if (strongestArmor != null) {
+            equipArmor(strongestArmor);
+        }
+    }
+
     public boolean unequipWeapon() {
         if (equippedWeapon == null) {
             return false;
@@ -620,6 +658,10 @@ public class Player {
         }
 
         currentRoom.removeItem(item);
+
+        // Auto-equip strongest weapon and armor on pickup
+        autoEquipStrongest();
+
         return true;
     }
 
