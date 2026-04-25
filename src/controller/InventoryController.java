@@ -6,6 +6,12 @@ import model.Player;
 import model.Weapon;
 import view.GameView;
 
+/**
+ * Helper that validates and executes inventory actions:
+ * pick up, drop, equip, unequip, and use items.
+ * 
+ * @author Jerry Kabwende
+ */
 public class InventoryController {
 
     // Handles only item-related commands

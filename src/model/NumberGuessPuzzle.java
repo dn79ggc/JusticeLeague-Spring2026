@@ -1,5 +1,11 @@
 package model;
 
+/**
+ * Number-guessing puzzle variant.
+ * Player guesses a random number within a given range.
+ * 
+ * @author Subhan Choudhry
+ */
 public class NumberGuessPuzzle extends Puzzle {
     private final int rangeMin;
     private final int rangeMax;

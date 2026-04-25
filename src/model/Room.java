@@ -2,6 +2,14 @@ package model;
 
 import java.util.*;
 
+/**
+ * Represents a room in the game world with directional exits, description,
+ * items, and puzzle.
+ * Core component of the room graph and navigation system.
+ * Manages room-to-room connectivity and coordinates for the interactive map.
+ * 
+ * @author Sebastian Ochoa Cabrera
+ */
 public class Room {
     // Properties strictly from the System Design PDF
     private String roomId; // Needed for your HashMap
@@ -148,22 +156,55 @@ public class Room {
     }
 
     // --- Monster Methods ---
-    public boolean hasMonster() { return monster != null; }
-    public Monster getMonster() { return monster; }
-    public void setMonster(Monster monster) { this.monster = monster; }
-    public void removeMonster() { this.monster = null; }
+    public boolean hasMonster() {
+        return monster != null;
+    }
+
+    public Monster getMonster() {
+        return monster;
+    }
+
+    public void setMonster(Monster monster) {
+        this.monster = monster;
+    }
+
+    public void removeMonster() {
+        this.monster = null;
+    }
 
     // --- Puzzle Methods ---
-    public boolean hasPuzzle() { return puzzle != null; }
-    public Puzzle getPuzzle() { return puzzle; }
-    public void setPuzzle(Puzzle puzzle) { this.puzzle = puzzle; }
-    public void removePuzzle() { this.puzzle = null; }
+    public boolean hasPuzzle() {
+        return puzzle != null;
+    }
+
+    public Puzzle getPuzzle() {
+        return puzzle;
+    }
+
+    public void setPuzzle(Puzzle puzzle) {
+        this.puzzle = puzzle;
+    }
+
+    public void removePuzzle() {
+        this.puzzle = null;
+    }
 
     // --- Item Methods ---
-    public boolean hasItems() { return !items.isEmpty(); }
-    public List<Item> getItems() { return items; }
-    public void addItem(Item item) { items.add(item); }
-    public void removeItem(Item item) { items.remove(item); }
+    public boolean hasItems() {
+        return !items.isEmpty();
+    }
+
+    public List<Item> getItems() {
+        return items;
+    }
+
+    public void addItem(Item item) {
+        items.add(item);
+    }
+
+    public void removeItem(Item item) {
+        items.remove(item);
+    }
 
     // --- Description Methods ---
     public String describe() {
@@ -175,7 +216,9 @@ public class Room {
 
         if (hasItems()) {
             fullDesc.append("\nItems on the floor: ");
-            for (Item i : items) { fullDesc.append(i.getName()).append(", "); }
+            for (Item i : items) {
+                fullDesc.append(i.getName()).append(", ");
+            }
         }
         if (hasMonster()) {
             fullDesc.append("\nA ").append(monster.getName()).append(" is here!");
@@ -187,10 +230,27 @@ public class Room {
     }
 
     // --- Getters ---
-    public String getRoomId() { return roomId; }
-    public String getName() { return name; }
-    public String getRoomName() { return name; }
-    public String getRoomDescription() { return description; }
-    public boolean isVisited() { return visited; }
-    public boolean isIndoor() { return isIndoor; }
+    public String getRoomId() {
+        return roomId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getRoomName() {
+        return name;
+    }
+
+    public String getRoomDescription() {
+        return description;
+    }
+
+    public boolean isVisited() {
+        return visited;
+    }
+
+    public boolean isIndoor() {
+        return isIndoor;
+    }
 }

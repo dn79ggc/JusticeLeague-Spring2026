@@ -2,6 +2,12 @@ package view;
 
 import java.util.List;
 
+/**
+ * Terminal-based display methods used by the legacy text game loop.
+ * Renders game state and prompts to standard output.
+ * 
+ * @author Subhan Choudhry
+ */
 public class GameView {
 
     public enum MessageType {

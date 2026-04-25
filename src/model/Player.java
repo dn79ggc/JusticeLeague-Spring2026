@@ -6,6 +6,12 @@ import java.util.Random;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
+/**
+ * Tracks player location, HP, inventory, equipped gear, and room history.
+ * Supports CSV load/save functionality.
+ * 
+ * @author Thang Pham
+ */
 public class Player {
     private static final Random RNG = new Random();
 

@@ -73,6 +73,15 @@ import model.SaveManager;
 import model.Weapon;
 import view.GameView.WinType;
 
+/**
+ * Full JavaFX GUI with a three-column layout:
+ * Left panel: player and room information.
+ * Center panel: narrative output log with state-driven button panels.
+ * Right panel: interactive map preview and inventory list.
+ * Includes save/load dialogs supporting up to three named save slots.
+ * 
+ * @author Subhan Choudhry
+ */
 public class GameGUI extends Application {
     private enum GameState {
         MAIN_MENU,

@@ -1,5 +1,10 @@
 package model;
 
+/**
+ * Represents a timed buff or debuff effect applied to a combatant.
+ * 
+ * @author Joseph Nguyen
+ */
 public class StatusEffect {
     private EffectType effectType;
     private double modifier;

@@ -3,6 +3,13 @@ package controller;
 import model.Room;
 import java.util.Map;
 
+/**
+ * Handles room navigation logic, movement validation, and barricade checks.
+ * Implements the room-graph traversal and directional navigation system.
+ * Manages player transitions between rooms in the game world.
+ * 
+ * @author Sebastian Ochoa Cabrera
+ */
 public class RoomController {
 
     // The Controller holds the logic/rules, acting ON the Model.

@@ -14,6 +14,14 @@ import view.GameView;
 
 import java.util.Scanner;
 
+/**
+ * Drives the legacy terminal game loop.
+ * Interprets movement, combat, inventory, puzzle, and item commands from
+ * standard input.
+ * 
+ * @author Thang Pham
+ */
+
 public class GameController {
 
     private static final String MAP_FILE = "rooms.csv";

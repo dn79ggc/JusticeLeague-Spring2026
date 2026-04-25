@@ -5,6 +5,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
+/**
+ * Loads and serves narrative strings by key from data/flavor_text.csv.
+ * 
+ * @author Thang Pham
+ */
 public final class FlavorText {
     private static final String DATA_FILE = "data/flavor_text.csv";
     private static final Map<String, String> TEXT_BY_KEY = new ConcurrentHashMap<>();

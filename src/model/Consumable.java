@@ -1,5 +1,10 @@
 package model;
 
+/**
+ * Usable item that restores HP or applies status effects.
+ * 
+ * @author Jerry Kabwende
+ */
 public class Consumable extends Item {
     private final int hpEffect;
     private final int defEffect;
@@ -7,7 +12,8 @@ public class Consumable extends Item {
     private final int hpPenalty;
 
     public Consumable(String name, int hpEffect, int defEffect, int defDuration, int hpPenalty) {
-        super(name, "Consumable", "Common", "A consumable item that can be used once.", "Provides effects like healing or buffs", "May have negative effects");
+        super(name, "Consumable", "Common", "A consumable item that can be used once.",
+                "Provides effects like healing or buffs", "May have negative effects");
         this.hpEffect = hpEffect;
         this.defEffect = defEffect;
         this.defDuration = defDuration;

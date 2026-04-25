@@ -10,6 +10,12 @@ import java.util.regex.Pattern;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
+/**
+ * Reads puzzle definitions from data/puzzles.csv and instantiates puzzle
+ * objects.
+ * 
+ * @author Subhan Choudhry
+ */
 public class PuzzleLoader {
 
     public static record PuzzleDefinition(

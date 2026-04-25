@@ -15,6 +15,13 @@ import java.util.regex.Pattern;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
+/**
+ * Main game state manager.
+ * Loads rooms, monsters, items, and puzzles from data files;
+ * tracks solved puzzles and win conditions.
+ * 
+ * @author Thang Pham
+ */
 public class Game {
     // All data files live in the data/ folder at the project root.
     private static final String DATA_DIR = "data/";

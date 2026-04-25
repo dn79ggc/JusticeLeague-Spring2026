@@ -284,10 +284,27 @@ It should report something like `java version "26"`.
 ### Audio
 
 **Background Music (BGM)**
-- **Lavender Town Theme** from Pokémon Generation 3 (Ruby/Sapphire)
+- **Lavender Town Theme** from Pokémon Generation 3 (Fire Red/Leaf Green)
   - Original composition by The Pokémon Company/Game Freak
   - Used as the persistent in-game background music with looping playback
   - Original title: "Lavender Town"
+
+### Development Team
+
+**Subhan Choudhry** – Puzzle system design and implementation; JavaFX GUI development
+- Classes: `Puzzle.java`, `PuzzleLoader.java`, `DicePuzzle.java`, `NumberGuessPuzzle.java`, `PokerPuzzle.java`, `RPSPuzzle.java`, `RiddlePuzzle.java`, `ScramblePuzzle.java`, `SelectionPuzzle.java`, `GameGUI.java`, `GameView.java`
+
+**Sebastian Ochoa Cabrera** – Room design, navigation system, and interactive map
+- Classes: `Room.java`, `RoomController.java`
+
+**Joseph Nguyen** – Monster implementation, combat system design, and balance
+- Classes: `Monster.java`, `MonsterAbility.java`, `CombatSystem.java`, `StatusEffect.java`, `EffectType.java`
+
+**Jerry Kabwende** – Item system and inventory management
+- Classes: `Item.java`, `Weapon.java`, `Armor.java`, `Consumable.java`, `KeyItem.java`, `InventoryController.java`
+
+**Thang Pham** – Architecture, integration, and tying all systems together
+- Classes: `Game.java`, `Player.java`, `Main.java`, `SaveManager.java`, `FlavorText.java`
 
 ---
 

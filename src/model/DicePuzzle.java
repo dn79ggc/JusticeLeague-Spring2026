@@ -1,5 +1,11 @@
 package model;
 
+/**
+ * Dice-rolling puzzle variant.
+ * Player attempts to roll a target value on a die.
+ * 
+ * @author Subhan Choudhry
+ */
 public class DicePuzzle extends Puzzle {
     private final int sides;
     private final int targetValue;

@@ -1,5 +1,10 @@
 package model;
 
+/**
+ * Quest item required to unlock specific doors or win conditions.
+ * 
+ * @author Jerry Kabwende
+ */
 public class KeyItem extends Item {
     private final String unlockTarget;
     private boolean consumed;

@@ -4,6 +4,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Rock-Paper-Scissors puzzle variant.
+ * Player plays rock, paper, or scissors against the opponent.
+ * 
+ * @author Subhan Choudhry
+ */
 public class RPSPuzzle extends Puzzle {
     private static final List<String> VALID_CHOICES = Arrays.asList("ROCK", "PAPER", "SCISSORS");
     private final String ghostHandConfig;

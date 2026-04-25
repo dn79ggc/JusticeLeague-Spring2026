@@ -13,6 +13,12 @@ import java.io.Writer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+
+/**
+ * Handles save/load functionality for up to three named slots using CSV and JSON.
+ * 
+ * @author Thang Pham
+ */
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;

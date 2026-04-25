@@ -3,6 +3,12 @@ package model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Abstract base class for all puzzle types.
+ * Tracks puzzle state, attempts, and results.
+ * 
+ * @author Subhan Choudhry
+ */
 public abstract class Puzzle {
     protected final String id;
     protected final String name;

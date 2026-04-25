@@ -4,6 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Letter-unscramble puzzle variant.
+ * Player unscrambles letters to form the correct answer.
+ * 
+ * @author Subhan Choudhry
+ */
 public class ScramblePuzzle extends Puzzle {
     private final List<String> letters;
 

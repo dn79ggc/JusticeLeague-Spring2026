@@ -2,6 +2,11 @@ package model;
 
 import java.util.Random;
 
+/**
+ * Equippable weapon item with attack damage and special effects.
+ * 
+ * @author Jerry Kabwende
+ */
 public class Weapon extends Item {
     private static final Random RNG = new Random();
 

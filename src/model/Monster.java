@@ -5,6 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represents an enemy with HP, attack, defense, abilities, and status effects.
+ * 
+ * @author Joseph Nguyen
+ */
 public class Monster {
     private String monsterId;
     private String monsterClass;

@@ -18,6 +18,12 @@ import model.StatusEffect;
 import model.Weapon;
 import view.GameView;
 
+/**
+ * Manages turn-based combat between the player and a monster.
+ * Handles attack, defend, flee, item use, and status-effect ticks.
+ * 
+ * @author Joseph Nguyen
+ */
 public class CombatSystem {
     private static final int COMBAT_DURATION = -1;
     private static final double BASE_FLEE_CHANCE = 0.50;

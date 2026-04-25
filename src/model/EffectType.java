@@ -1,5 +1,10 @@
 package model;
 
+/**
+ * Enumeration of all possible status effect types used in combat.
+ * 
+ * @author Joseph Nguyen
+ */
 public enum EffectType {
     NONE,
     POISON,

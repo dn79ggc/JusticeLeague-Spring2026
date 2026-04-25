@@ -3,6 +3,12 @@ package model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Multiple-choice selection puzzle variant.
+ * Player selects the correct answer from multiple options.
+ * 
+ * @author Subhan Choudhry
+ */
 public class SelectionPuzzle extends Puzzle {
     private final List<String> options;
 

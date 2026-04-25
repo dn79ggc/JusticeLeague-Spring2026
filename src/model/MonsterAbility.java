@@ -1,5 +1,10 @@
 package model;
 
+/**
+ * Defines special actions a monster can perform during combat.
+ * 
+ * @author Joseph Nguyen
+ */
 public class MonsterAbility {
     private final String name;
     private final double damagePercent;

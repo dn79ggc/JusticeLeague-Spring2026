@@ -1,5 +1,11 @@
 package model;
 
+/**
+ * Card draw poker puzzle variant.
+ * Player draws cards to match or beat the opponent's card value.
+ * 
+ * @author Subhan Choudhry
+ */
 public class PokerPuzzle extends Puzzle {
     private int ghostCard;
 

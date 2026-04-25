@@ -1,5 +1,11 @@
 package model;
 
+/**
+ * Text riddle puzzle variant.
+ * Player reads and answers a riddle.
+ * 
+ * @author Subhan Choudhry
+ */
 public class RiddlePuzzle extends Puzzle {
     private final String riddleText;
 

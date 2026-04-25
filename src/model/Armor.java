@@ -1,5 +1,10 @@
 package model;
 
+/**
+ * Equippable armor item with defense bonus.
+ * 
+ * @author Jerry Kabwende
+ */
 public class Armor extends Item {
     private final int defense;
 

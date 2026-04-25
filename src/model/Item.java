@@ -1,5 +1,10 @@
 package model;
 
+/**
+ * Base class for all item types (weapons, armor, consumables, key items).
+ * 
+ * @author Jerry Kabwende
+ */
 public class Item {
     private String name;
     private String itemType;
