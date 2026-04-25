@@ -89,6 +89,14 @@ tasks.register('runSaveLoadTest', JavaExec) {
     jvmArgs = javafxJvmArgs
 }
 
+tasks.register('runBarricadeMonteCarloTest', JavaExec) {
+    group = 'verification'
+    description = 'Run 100-run barricade behavior simulation'
+    classpath = applicationRuntimeClasspath
+    mainClass.set('controller.BarricadeMonteCarloTester')
+    jvmArgs = javafxJvmArgs
+}
+
 tasks.register('runGUI') {
     group = 'application'
     description = 'Alias for runGui'

@@ -127,6 +127,13 @@ public class Monster {
         return roomId;
     }
 
+    public void setRoomId(String roomId) {
+        if (roomId == null || roomId.isBlank()) {
+            return;
+        }
+        this.roomId = roomId;
+    }
+
     public String getResistType() {
         return resistType;
     }

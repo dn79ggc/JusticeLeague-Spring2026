@@ -94,7 +94,7 @@ public class CombatSystem {
 
         view.displayMessage("The " + activeMonster.getName() + " attacks before you can react!",
                 GameView.MessageType.SYSTEM);
-        executeMonsterTurn(player, activeMonster);
+        executeMonsterTurn(player, activeMonster, true);
 
         if (!inCombat || activeMonster == null || combatRoom == null) {
             return;
@@ -126,7 +126,7 @@ public class CombatSystem {
         }
 
         if (playerResult != ActionResult.ACTION_FREE && playerResult != ActionResult.ACTION_ITEM_USED) {
-            executeMonsterTurn(player, activeMonster);
+            executeMonsterTurn(player, activeMonster, false);
         }
 
         if (!inCombat || activeMonster == null || combatRoom == null) {
@@ -251,7 +251,7 @@ public class CombatSystem {
         return ActionResult.ACTION_SUCCESS;
     }
 
-    private void executeMonsterTurn(Player player, Monster monster) {
+    private void executeMonsterTurn(Player player, Monster monster, boolean entryTurn) {
         if (!inCombat || monster == null || monster.isDefeated()) {
             return;
         }
@@ -259,7 +259,7 @@ public class CombatSystem {
         view.setCombatActionsEnabled(false);
         view.displayMessage(monster.getName() + " acts...", GameView.MessageType.SYSTEM);
 
-        MonsterAbility ability = selectAbility(monster);
+        MonsterAbility ability = selectAbility(monster, !entryTurn);
         if (ability == null) {
             view.displayMessage(monster.getName() + " hesitates.", GameView.MessageType.SYSTEM);
             return;
@@ -269,7 +269,7 @@ public class CombatSystem {
         player.setDefending(false);
     }
 
-    private MonsterAbility selectAbility(Monster monster) {
+    private MonsterAbility selectAbility(Monster monster, boolean allowBarricade) {
         if (monster.isType("Freak")) {
             double threshold = monster.getSpecialFlag("FLEE_HP_THRESHOLD");
             double fleeChance = monster.getSpecialFlag("FLEE_CHANCE_WHEN_LOW");
@@ -283,8 +283,7 @@ public class CombatSystem {
         if (monster.isType("Freak")) {
             available.removeIf(a -> "Flee".equalsIgnoreCase(a.getName()));
         }
-        if (monster.isType("Poltergeist")) {
-            // Keep combat outcome deterministic; do not allow random barricade-flee exits.
+        if (!allowBarricade) {
             available.removeIf(a -> "Barricade".equalsIgnoreCase(a.getName()));
         }
 
@@ -341,13 +340,59 @@ public class CombatSystem {
         }
 
         if ("Barricade".equalsIgnoreCase(name)) {
-            String direction = combatRoom.getRandomUnbarricadedExit();
-            if (direction != null) {
-                combatRoom.barricadeExit(direction);
+            List<String> viableDirections = new ArrayList<>();
+            for (String direction : List.of("N", "E", "S", "W")) {
+                if (combatRoom.isBarricaded(direction)) {
+                    continue;
+                }
+                int destinationNumber = switch (direction) {
+                    case "N" -> combatRoom.getExit(0);
+                    case "E" -> combatRoom.getExit(1);
+                    case "S" -> combatRoom.getExit(2);
+                    case "W" -> combatRoom.getExit(3);
+                    default -> -1;
+                };
+                if (destinationNumber <= 0) {
+                    continue;
+                }
+                Room destinationRoom = game.getRoomByNumber(destinationNumber);
+                if (destinationRoom == null || destinationRoom == combatRoom) {
+                    continue;
+                }
+                if (destinationRoom.getMonster() != null && destinationRoom.getMonster().isAlive()) {
+                    continue;
+                }
+                viableDirections.add(direction);
             }
+
+            if (viableDirections.isEmpty()) {
+                view.displayMessage("The Poltergeist tries to barricade, but no viable path is available.",
+                        GameView.MessageType.SYSTEM);
+                return;
+            }
+
+            String direction = viableDirections.get(rng.nextInt(viableDirections.size()));
+
+            combatRoom.barricadeExit(direction);
+            int destinationNumber = switch (direction) {
+                case "N" -> combatRoom.getExit(0);
+                case "E" -> combatRoom.getExit(1);
+                case "S" -> combatRoom.getExit(2);
+                case "W" -> combatRoom.getExit(3);
+                default -> -1;
+            };
+
+            Room destinationRoom = destinationNumber > 0 ? game.getRoomByNumber(destinationNumber) : null;
+            if (destinationRoom != null && destinationRoom != combatRoom) {
+                combatRoom.removeMonster();
+                destinationRoom.setMonster(monster);
+                monster.setRoomId(destinationRoom.getRoomId());
+                monster.heal(monster.getMaxHp());
+            }
+
             monster.setHasBarricaded(true);
             Map<String, String> params = new HashMap<>();
-            params.put("direction", direction == null ? "nearest" : direction);
+            params.put("direction", direction);
             view.displayMessage(
                     FlavorText.get("BARRICADE_FLEE", "The Poltergeist FLEES and barricades an exit.", params),
                     GameView.MessageType.SYSTEM);
@@ -692,7 +737,6 @@ public class CombatSystem {
                 checkCleanseWinCondition();
             }
             case PLAYER_WIN_BARRICADE -> {
-                combatRoom.removeMonster();
                 view.displayMessage("--- Combat over (enemy fled) ---", GameView.MessageType.SEPARATOR);
             }
             case PLAYER_FLED -> view.displayMessage("--- Combat over (you fled) ---", GameView.MessageType.SEPARATOR);

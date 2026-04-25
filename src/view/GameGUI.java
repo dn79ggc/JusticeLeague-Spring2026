@@ -573,8 +573,12 @@ public class GameGUI extends Application {
 
             boolean fromVisible = fromRoom.isVisited() || (player != null && player.getLocation() == edge.fromRoom());
             boolean toVisible = toRoom.isVisited() || (player != null && player.getLocation() == edge.toRoom());
-            Color color = (fromVisible || toVisible) ? Color.web("#64748b") : Color.web("#1e293b");
-            double stroke = (fromVisible || toVisible) ? 2.0 : 1.0;
+            boolean barricadedEdge = isEdgeBarricaded(fromRoom, edge.toRoom())
+                    || isEdgeBarricaded(toRoom, edge.fromRoom());
+            Color color = barricadedEdge
+                    ? Color.web("#3b0764")
+                    : (fromVisible || toVisible) ? Color.web("#64748b") : Color.web("#1e293b");
+            double stroke = barricadedEdge ? 3.0 : (fromVisible || toVisible) ? 2.0 : 1.0;
 
             // Keep links strictly straight so map paths do not render with divets.
             if (a.rowIndex() == b.rowIndex()) {
@@ -623,6 +627,22 @@ public class GameGUI extends Application {
             }
             mapCanvas.getChildren().add(node);
         }
+    }
+
+    private boolean isEdgeBarricaded(Room fromRoom, int toRoomNumber) {
+        if (fromRoom == null || toRoomNumber <= 0) {
+            return false;
+        }
+        if (fromRoom.getExit(0) == toRoomNumber && fromRoom.isBarricaded("N")) {
+            return true;
+        }
+        if (fromRoom.getExit(1) == toRoomNumber && fromRoom.isBarricaded("E")) {
+            return true;
+        }
+        if (fromRoom.getExit(2) == toRoomNumber && fromRoom.isBarricaded("S")) {
+            return true;
+        }
+        return fromRoom.getExit(3) == toRoomNumber && fromRoom.isBarricaded("W");
     }
 
     private void drawHorizontalEdge(MapPoint left, MapPoint right, Color color, double stroke) {
@@ -1265,12 +1285,16 @@ public class GameGUI extends Application {
         btnPickup = new Button("Pick Up [P]");
         btnUseFromBag = new Button("Use Item [U]");
         btnEquipFromBag = new Button("Equip [G]");
+        btnKick = new Button("Breach [K]");
         btnSolvePuzzle.setPrefWidth(150);
         btnExploreAction.setPrefWidth(150);
         btnInventory.setPrefWidth(150);
         btnPickup.setPrefWidth(150);
         btnUseFromBag.setPrefWidth(150);
         btnEquipFromBag.setPrefWidth(150);
+        btnKick.setPrefWidth(150);
+        btnKick.setVisible(false);
+        btnKick.setManaged(false);
         btnSolvePuzzle.setOnAction(e -> attemptPuzzle());
         btnExploreAction.setOnAction(e -> {
             Room currentRoom = game.getRoomByNumber(player.getLocation());
@@ -1282,8 +1306,9 @@ public class GameGUI extends Application {
         btnPickup.setOnAction(e -> pickUpSelectedRoomItem());
         btnUseFromBag.setOnAction(e -> useConsumableFromInventory());
         btnEquipFromBag.setOnAction(e -> equipItemFromInventory());
+        btnKick.setOnAction(e -> breachBarricadedExit());
         actionRow.getChildren().addAll(btnSolvePuzzle, btnExploreAction, btnInventory);
-        itemRow.getChildren().addAll(btnPickup, btnUseFromBag, btnEquipFromBag);
+        itemRow.getChildren().addAll(btnPickup, btnUseFromBag, btnEquipFromBag, btnKick);
 
         box.getChildren().addAll(compass, actionRow, itemRow);
         return box;
@@ -1837,6 +1862,7 @@ public class GameGUI extends Application {
         lblRoomID.setText(room.getRoomId() + " · " + room.getName());
         lblExits.setText("Exits: " + buildExitString(room));
         lblRoomDescription.setText(buildRoomDetails(room));
+        updateBreachButtonForCurrentRoom();
     }
 
     private String buildRoomDetails(Room room) {
@@ -1930,6 +1956,12 @@ public class GameGUI extends Application {
             return;
         }
 
+        if (currentRoom.isBarricaded(direction)) {
+            outputText("That path is barricaded. Breach it first.");
+            updateBreachButtonForCurrentRoom();
+            return;
+        }
+
         int destination = currentRoom.getExit(directionIndex);
         if (destination > 0) {
             player.setLocation(destination);
@@ -1953,6 +1985,64 @@ public class GameGUI extends Application {
         } else {
             outputText(FlavorText.get("NO_EXIT", "There is no exit in that direction."));
         }
+    }
+
+    private String findBarricadedDirection(Room room) {
+        if (room == null) {
+            return null;
+        }
+        for (String direction : new String[] { "N", "E", "S", "W" }) {
+            if (room.isBarricaded(direction)) {
+                return direction;
+            }
+        }
+        return null;
+    }
+
+    private void updateBreachButtonForCurrentRoom() {
+        if (btnKick == null || player == null || game == null) {
+            return;
+        }
+
+        Room currentRoom = game.getRoomByNumber(player.getLocation());
+        String blockedDirection = findBarricadedDirection(currentRoom);
+        boolean show = blockedDirection != null && (combatSystem == null || !combatSystem.isInCombat());
+
+        btnKick.setVisible(show);
+        btnKick.setManaged(show);
+        if (show) {
+            btnKick.setText("Breach [K] (" + blockedDirection + ")");
+        }
+    }
+
+    private void breachBarricadedExit() {
+        if (player == null || game == null) {
+            return;
+        }
+        if (combatSystem != null && combatSystem.isInCombat()) {
+            outputText("You cannot breach while in combat.");
+            return;
+        }
+
+        Room currentRoom = game.getRoomByNumber(player.getLocation());
+        String blockedDirection = findBarricadedDirection(currentRoom);
+        if (currentRoom == null || blockedDirection == null) {
+            outputText("There is no barricaded path here.");
+            updateBreachButtonForCurrentRoom();
+            return;
+        }
+
+        boolean success = player.breach(blockedDirection);
+        if (success) {
+            outputText("You breach the barricade toward " + blockedDirection + " and take damage.");
+            outputText("Current HP: " + player.getCurrentHP());
+        } else {
+            outputText("You fail to breach the barricade.");
+        }
+
+        updatePlayerInfo();
+        updateRoomInfo();
+        updateMapGrid();
     }
 
     private void checkEscapeEnding() {
@@ -2587,6 +2677,8 @@ public class GameGUI extends Application {
                 btnUseFromBag.fire();
             } else if (e.getCode() == KeyCode.G) {
                 btnEquipFromBag.fire();
+            } else if (e.getCode() == KeyCode.K) {
+                fireIfVisible(btnKick);
             } else if (e.getCode() == KeyCode.T) {
                 // Status button removed; refresh player info display instead
                 updatePlayerInfo();
@@ -3062,6 +3154,12 @@ public class GameGUI extends Application {
         Monster monster = room.getMonster();
         if (monster != null && monster.isAlive()) {
             combatSystem.startCombat(player, monster, room);
+            if (!combatSystem.isInCombat() && player != null && player.getCurrentHP() > 0) {
+                setGameState(GameState.EXPLORATION);
+                updatePlayerInfo();
+                updateRoomInfo();
+                updateMapGrid();
+            }
         }
     }
 

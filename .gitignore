@@ -42,3 +42,7 @@ lib/javafx-sdk-26/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local documentation drafts
+FINAL_PRESENTATION_DECK.md
+CHECKLIST_AUDIT.md
