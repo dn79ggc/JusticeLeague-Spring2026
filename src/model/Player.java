@@ -269,10 +269,36 @@ public class Player {
 
     // Equipment
     public void equipWeapon(Weapon weapon) {
+        if (weapon == null) {
+            return;
+        }
+
+        if (equippedWeapon == weapon) {
+            inventory.remove(weapon);
+            return;
+        }
+
+        inventory.remove(weapon);
+        if (equippedWeapon != null) {
+            inventory.add(equippedWeapon);
+        }
         this.equippedWeapon = weapon;
     }
 
     public void equipArmor(Armor armor) {
+        if (armor == null) {
+            return;
+        }
+
+        if (equippedArmor == armor) {
+            inventory.remove(armor);
+            return;
+        }
+
+        inventory.remove(armor);
+        if (equippedArmor != null) {
+            inventory.add(equippedArmor);
+        }
         this.equippedArmor = armor;
     }
 
@@ -664,9 +690,6 @@ public class Player {
         }
 
         currentRoom.removeItem(item);
-
-        // Auto-equip strongest weapon and armor on pickup
-        autoEquipStrongest();
 
         return true;
     }

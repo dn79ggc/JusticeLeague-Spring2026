@@ -2149,22 +2149,10 @@ public class GameGUI extends Application {
         }
 
         if (selected instanceof Weapon weapon) {
-            Weapon old = player.getEquippedWeapon();
-            if (old != null && !player.addToInventory(old)) {
-                outputText("Cannot swap weapons because your bag is full.");
-                return;
-            }
             player.equipWeapon(weapon);
-            player.getInventory().remove(weapon);
             outputText("Equipped weapon: " + weapon.getName());
         } else if (selected instanceof Armor armor) {
-            Armor old = player.getEquippedArmor();
-            if (old != null && !player.addToInventory(old)) {
-                outputText("Cannot swap armor because your bag is full.");
-                return;
-            }
             player.equipArmor(armor);
-            player.getInventory().remove(armor);
             outputText("Equipped armor: " + armor.getName());
         }
 
